@@ -1,0 +1,221 @@
+name: "GitHub Actions for AI PR Reviewer & Summarizer"
+description: "GitHub Actions for AI PR Reviewer & Summarizer"
+branding:
+  icon: "git-merge"
+  color: "blue"
+author: "mopemope"
+
+inputs:
+  debug:
+    required: false
+    description: "Enable debug mode"
+    default: "false"
+  path_filters:
+    required: false
+    description: |
+      The path filters, e.g., "src/**.py", "!dist/**", each line will be considered as one pattern.
+      See also
+
+      - https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore
+      - https://github.com/isaacs/minimatch
+    default: |
+      !dist/**
+      !**/*.app
+      !**/*.bin
+      !**/*.bz2
+      !**/*.class
+      !**/*.db
+      !**/*.csv
+      !**/*.tsv
+      !**/*.dat
+      !**/*.dll
+      !**/*.dylib
+      !**/*.egg
+      !**/*.glif
+      !**/*.gz
+      !**/*.xz
+      !**/*.zip
+      !**/*.7z
+      !**/*.rar
+      !**/*.zst
+      !**/*.ico
+      !**/*.jar
+      !**/*.tar
+      !**/*.war
+      !**/*.lo
+      !**/*.log
+      !**/*.mp3
+      !**/*.wav
+      !**/*.wma
+      !**/*.mp4
+      !**/*.avi
+      !**/*.mkv
+      !**/*.wmv
+      !**/*.m4a
+      !**/*.m4v
+      !**/*.3gp
+      !**/*.3g2
+      !**/*.rm
+      !**/*.mov
+      !**/*.flv
+      !**/*.iso
+      !**/*.swf
+      !**/*.flac
+      !**/*.nar
+      !**/*.o
+      !**/*.ogg
+      !**/*.otf
+      !**/*.p
+      !**/*.pdf
+      !**/*.doc
+      !**/*.docx
+      !**/*.xls
+      !**/*.xlsx
+      !**/*.ppt
+      !**/*.pptx
+      !**/*.pkl
+      !**/*.pickle
+      !**/*.pyc
+      !**/*.pyd
+      !**/*.pyo
+      !**/*.pub
+      !**/*.pem
+      !**/*.rkt
+      !**/*.so
+      !**/*.ss
+      !**/*.eot
+      !**/*.exe
+      !**/*.pb.go
+      !**/*.lock
+      !**/*.ttf
+      !**/*.yaml
+      !**/*.yml
+      !**/*.cfg
+      !**/*.toml
+      !**/*.ini
+      !**/*.mod
+      !**/*.sum
+      !**/*.work
+      !**/*.json
+      !**/*.mmd
+      !**/*.svg
+      !**/*.jpeg
+      !**/*.jpg
+      !**/*.png
+      !**/*.gif
+      !**/*.bmp
+      !**/*.tiff
+      !**/*.webm
+      !**/*.woff
+      !**/*.woff2
+      !**/*.dot
+      !**/*.md5sum
+      !**/*.wasm
+      !**/*.snap
+      !**/*.parquet
+      !**/gen/**
+      !**/_gen/**
+      !**/generated/**
+      !**/@generated/**
+      !**/vendor/**
+      !**/*.min.js
+      !**/*.min.js.map
+      !**/*.min.js.css
+      !**/*.tfstate
+      !**/*.tfstate.backup
+  disable_review:
+    required: false
+    description: "Only provide the summary and skip the code review."
+    default: "false"
+  disable_release_notes:
+    required: false
+    description: "Disable release notes"
+    default: "false"
+  summary_model:
+    required: true
+    description:
+      "Model to use for simple tasks like summarizing diff on a file."
+    default: "openai/gpt-3.5-turbo"
+  model:
+    required: true
+    description: "Model to use for review tasks."
+    default: "openai/gpt-4o"
+  retries:
+    required: false
+    description:
+      "How many times to retry OpenAI API in case of timeouts or errors?"
+    default: "5"
+  timeout_ms:
+    required: false
+    description: "Timeout for OpenAI API call in millis"
+    default: "360000"
+  release_notes_title:
+    required: false
+    description: "Title for the release notes"
+    default: "Key Changes"
+  system_prompt:
+    required: false
+    description: "System message to be sent to LLM"
+    default: |
+      You are a highly meticulous and logically rigorous software development assistant.  
+      Your approach is characterized by **strict validation, self-reflection, and iterative analysis**, ensuring that your reviews are **consistent and insightful**.  
+      You act as a **highly experienced software engineer**, performing **in-depth reviews of modified code (code hunks) and providing concrete code snippets for improvement**.  
+
+      ### Key Review Areas  
+      You will analyze the following critical aspects to identify and resolve issues, improving overall code quality:  
+
+      - Logical accuracy and soundness  
+      - Security vulnerabilities and risks  
+      - Performance and optimization
+      - Potential data races and concurrency issues
+      - Consistency and predictable behavior  
+      - Appropriate error handling  
+      - Maintainability and readability  
+      - Modularity and reusability 
+      - Complexity management (keeping the design simple and comprehensible)
+      - Best practices (e.g., DRY, SOLID, KISS, etc.)  
+
+      ### Areas to Avoid Commenting On  
+      - Minor code style issues (e.g., indentation, naming conventions, etc.)*
+      - Lack of comments or documentation**  
+
+      ### Review Guidelines  
+      - Maintain **consistent evaluation criteria** to ensure stable and reliable feedback.  
+      - Focus on identifying and resolving significant issues while deliberately ignoring trivial ones.  
+      - Provide specific improvement suggestions, including code snippets whenever possible.  
+      - Deliver feedback based on deep analysis rather than surface-level observations.
+
+  summarize_release_notes:
+    required: false
+    description:
+      "The prompt for generating release notes in the same chat as summarize
+      stage"
+    default: |
+      Craft concise release notes for the pull request.
+      Focus on the purpose and user impact, categorizing changes as "New Feature", "Bug Fix",
+      "Documentation", "Refactor", "Style", "Test", "Chore", or "Revert". Provide a bullet-point list,
+      e.g., "- New Feature: Added search functionality to the UI". Limit your response to 50-100 words
+      and emphasize features visible to the end-user while omitting code-level details.
+  use_file_content:
+    required: false
+    description:
+      If true, it will also provide the file content as context when review or
+      summary.
+    default: "false"
+  custom_review_policy:
+    required: false
+    description: "Set the policies for reviewing the modified code."
+    default: ""
+  language:
+    required: false
+    description: ISO code for the response language
+    default: en-US
+  comment_greeting:
+    required: false
+    description: "Greeting message for the comment"
+    default: |
+      Review bot comments:
+
+runs:
+  using: node20
+  main: dist/index.js
