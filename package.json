@@ -1,8 +1,8 @@
 {
   "name": "pr-ai-review-bot",
   "description": "GitHub Actions for AI PR Reviewer",
-  "version": "0.0.1",
-  "author": "",
+  "version": "1.0.0",
+  "author": "mopemope",
   "type": "module",
   "private": true,
   "homepage": "https://github.com/mopemope/pr-ai-review-bot",
