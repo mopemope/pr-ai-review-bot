@@ -9,9 +9,10 @@ const apiKey = process.env.OPENAI_API_KEY || ""
 export class OpenAIClient implements ChatBot {
   private client: OpenAI
   private options: Options
+  private model: string
 
-  constructor(options: Options) {
-    const modelName = getModelName(options.model)
+  constructor(modelName: string, options: Options) {
+    this.model = getModelName(modelName)
     this.options = options
     this.client = new OpenAI({
       apiKey: apiKey
@@ -26,7 +27,7 @@ export class OpenAIClient implements ChatBot {
     try {
       // Call the OpenAI API
       const response = await this.client.chat.completions.create({
-        model: getModelName(this.options.model),
+        model: this.model,
         messages: [
           { role: "system", content: this.options.systemPrompt } as const,
           ...prompts.map((prompt) => ({

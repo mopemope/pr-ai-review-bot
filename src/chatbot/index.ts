@@ -45,7 +45,7 @@ export const createChatBotFromModel = (
   options: Options
 ): ChatBot => {
   if (modelName.startsWith("openai/")) {
-    return new OpenAIClient(options)
+    return new OpenAIClient(modelName, options)
   }
   if (modelName.startsWith("google/")) {
     return new GeminiClient(modelName, options)
