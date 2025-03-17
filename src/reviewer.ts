@@ -127,9 +127,11 @@ export class Reviewer {
         // debug(`Review prompt: ${JSON.stringify(reviewPrompt, null, 2)}`)
         debug(`Start review: ${diff.filename}`)
 
-        let reviewComment = undefined
+        let reviewComment: string | undefined = undefined
         try {
           reviewComment = await this.reviewBot.create(prContext, reviewPrompt)
+          // Trim leading/trailing whitespace from the review comment
+          reviewComment.trim()
         } catch (error) {
           // Handle error in review comment generation
           warning(

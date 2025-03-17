@@ -47418,6 +47418,8 @@ class Reviewer {
                 let reviewComment = undefined;
                 try {
                     reviewComment = await this.reviewBot.create(prContext, reviewPrompt);
+                    // Trim leading/trailing whitespace from the review comment
+                    reviewComment.trim();
                 }
                 catch (error) {
                     // Handle error in review comment generation
