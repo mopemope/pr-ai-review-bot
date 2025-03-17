@@ -47720,26 +47720,31 @@ async function run() {
         const allChanges = await getAllChangedFiles(prContext, options, octokit);
         // Fetch files changed in the pull request with diff information
         const changes = await getChangedFiles(prContext, options, octokit);
-        if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
-            // Generate and post a summary of the PR changes
-            const summary = await reviewer.summarizeChanges({
-                prContext,
-                prompts,
-                changes
-            });
-            debug$2(`Summary changeset: ${summary}`);
-            if (!options.localAction) {
-                // Update the PR description with the generated summary
-                await commenter.updateDescription(summary);
+        if (changes.length > 0) {
+            if (!options.disableReleaseNotes) {
+                // Generate and post a summary of the PR changes
+                const summary = await reviewer.summarizeChanges({
+                    prContext,
+                    prompts,
+                    changes
+                });
+                debug$2(`Summary changeset: ${summary}`);
+                if (!options.localAction) {
+                    // Update the PR description with the generated summary
+                    await commenter.updateDescription(summary);
+                }
+            }
+            if (!options.disableReview) {
+                // Review code changes and post feedback comments
+                await reviewer.reviewChanges({
+                    prContext,
+                    prompts,
+                    changes
+                });
             }
         }
-        if (!options.disableReview) {
-            // Review code changes and post feedback comments
-            await reviewer.reviewChanges({
-                prContext,
-                prompts,
-                changes
-            });
+        else {
+            coreExports.info("No changes found in the PR. Skipping review.");
         }
         await commenter.postPullRequestSummary(allChanges);
     }
