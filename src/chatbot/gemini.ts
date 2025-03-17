@@ -4,7 +4,6 @@ import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
 import { type ChatBot, type Message, getModelName } from "./index.js"
 
-const defaultModel = "gemini-2.0-flash-lite"
 const apiKey = process.env.GEMINI_API_KEY || ""
 
 export class GeminiClient implements ChatBot {
@@ -12,15 +11,15 @@ export class GeminiClient implements ChatBot {
   private model: GenerativeModel
   private options: Options
 
-  constructor(options: Options) {
+  constructor(modelName: string, options: Options) {
     this.options = options
     this.client = new GoogleGenerativeAI(apiKey)
-    const modelName = getModelName(options.model) || defaultModel
+    const geminiModel = getModelName(modelName)
     this.model = this.client.getGenerativeModel({
       systemInstruction: {
         text: options.systemPrompt // System prompt for the model
       },
-      model: modelName
+      model: geminiModel
     })
 
     if (this.options.debug) {
