@@ -33207,25 +33207,32 @@ ${body}`);
         let page = 1;
         try {
             for (;;) {
-                const { data: comments } = await this.octokit.rest.issues.listComments({
+                const response = await this.octokit.rest.issues.listComments({
                     owner: this.prContext.owner,
                     repo: this.prContext.repo,
                     issue_number: target,
                     page,
                     per_page: 100
                 });
-                const typedComments = comments.map((comment) => ({
-                    id: comment.id,
-                    node_id: comment.node_id,
-                    url: comment.url,
-                    html_url: comment.html_url,
-                    body: comment.body || "",
-                    created_at: comment.created_at,
-                    updated_at: comment.updated_at
-                }));
-                allComments.push(...typedComments);
-                page++;
-                if (!comments || comments.length < 100) {
+                if (response.status === 200) {
+                    const comments = response.data;
+                    const typedComments = comments.map((comment) => ({
+                        id: comment.id,
+                        node_id: comment.node_id,
+                        url: comment.url,
+                        html_url: comment.html_url,
+                        body: comment.body || "",
+                        created_at: comment.created_at,
+                        updated_at: comment.updated_at
+                    }));
+                    allComments.push(...typedComments);
+                    page++;
+                    if (!comments || comments.length < 100) {
+                        break;
+                    }
+                }
+                else {
+                    coreExports.warning(`Failed to list comments: ${response.status}`);
                     break;
                 }
             }
