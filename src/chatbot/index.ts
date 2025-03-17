@@ -51,7 +51,7 @@ export const createChatBotFromModel = (
     return new GeminiClient(options)
   }
   if (modelName.startsWith("anthropic/")) {
-    return new ClaudeClient(options)
+    return new ClaudeClient(modelName, options)
   }
 
   throw new Error(`Unsupported model: ${modelName}`)
