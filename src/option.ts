@@ -18,6 +18,7 @@ export class Options {
   localAction: boolean
   reviewPolicy: string
   commentGreeting: string
+  ignoreKeywords: string[]
 
   constructor(
     debug: boolean,
@@ -34,7 +35,8 @@ export class Options {
     releaseNotesTitle: string,
     useFileContent: boolean,
     reviewPolicy: string,
-    commentGreeting: string
+    commentGreeting: string,
+    ignoreKeywords: string[]
   ) {
     this.debug = debug
     this.disableReview = disableReview
@@ -52,6 +54,7 @@ export class Options {
     this.localAction = process.env.LOCAL_ACTION === "true"
     this.reviewPolicy = reviewPolicy
     this.commentGreeting = commentGreeting
+    this.ignoreKeywords = ignoreKeywords
   }
 
   /**

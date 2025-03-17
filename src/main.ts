@@ -37,7 +37,8 @@ const getOptions = () => {
     getInput("release_notes_title"),
     getBooleanInput("use_file_content"),
     getInput("custom_review_policy"),
-    getInput("comment_greeting")
+    getInput("comment_greeting"),
+    getMultilineInput("ignore_keywords")
   )
 }
 
