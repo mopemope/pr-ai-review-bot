@@ -88,6 +88,24 @@ export class Options {
     debug(`checking path: ${path} => ${ok}`)
     return ok
   }
+
+  /**
+   * Checks if any of the configured ignore keywords are present in the description.
+   *
+   * @param description - The text to check for ignore keywords
+   * @returns Boolean indicating whether any ignore keywords were found
+   */
+  includeIgnoreKeywords(description: string): boolean {
+    if (this.ignoreKeywords.length === 0) {
+      return false
+    }
+    for (const keyword of this.ignoreKeywords) {
+      if (description.includes(keyword)) {
+        return true
+      }
+    }
+    return false
+  }
 }
 
 export class PathFilter {
