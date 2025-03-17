@@ -34,6 +34,6 @@ jobs:
         with:
           debug: true
           use_file_content: false
-          summary_model: "anthropic/claude-3-5-sonnet-haiku"
+          summary_model: "anthropic/claude-3-5-haiku-latest"
           model: "anthropic/claude-3-7-sonnet-latest"
           language: "japanese"
