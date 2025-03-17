@@ -41279,21 +41279,20 @@ class GoogleGenerativeAI {
     }
 }
 
-const defaultModel = "gemini-2.0-flash-lite";
 const apiKey$1 = process.env.GEMINI_API_KEY || "";
 class GeminiClient {
     client;
     model;
     options;
-    constructor(options) {
+    constructor(modelName, options) {
         this.options = options;
         this.client = new GoogleGenerativeAI(apiKey$1);
-        const modelName = getModelName(options.model) || defaultModel;
+        const geminiModel = getModelName(modelName);
         this.model = this.client.getGenerativeModel({
             systemInstruction: {
                 text: options.systemPrompt // System prompt for the model
             },
-            model: modelName
+            model: geminiModel
         });
         if (this.options.debug) {
             coreExports.debug("Gemini client initialized");
@@ -47261,8 +47260,9 @@ const apiKey = process.env.OPENAI_API_KEY || "";
 class OpenAIClient {
     client;
     options;
-    constructor(options) {
-        const modelName = getModelName(options.model);
+    model;
+    constructor(modelName, options) {
+        this.model = getModelName(modelName);
         this.options = options;
         this.client = new OpenAI({
             apiKey: apiKey
@@ -47275,7 +47275,7 @@ class OpenAIClient {
         try {
             // Call the OpenAI API
             const response = await this.client.chat.completions.create({
-                model: getModelName(this.options.model),
+                model: this.model,
                 messages: [
                     { role: "system", content: this.options.systemPrompt },
                     ...prompts.map((prompt) => ({
@@ -47319,10 +47319,10 @@ const getModelName = (name) => {
  */
 const createChatBotFromModel = (modelName, options) => {
     if (modelName.startsWith("openai/")) {
-        return new OpenAIClient(options);
+        return new OpenAIClient(modelName, options);
     }
     if (modelName.startsWith("google/")) {
-        return new GeminiClient(options);
+        return new GeminiClient(modelName, options);
     }
     if (modelName.startsWith("anthropic/")) {
         return new ClaudeClient(modelName, options);

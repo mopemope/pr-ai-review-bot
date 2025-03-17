@@ -5,6 +5,6 @@ export declare class GeminiClient implements ChatBot {
     private client;
     private model;
     private options;
-    constructor(options: Options);
+    constructor(modelName: string, options: Options);
     create(ctx: PullRequestContext, prompts: Message[]): Promise<string>;
 }
