@@ -35560,7 +35560,8 @@ class Options {
     localAction;
     reviewPolicy;
     commentGreeting;
-    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting) {
+    ignoreKeywords;
+    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords) {
         this.debug = debug;
         this.disableReview = disableReview;
         this.disableReleaseNotes = disableReleaseNotes;
@@ -35577,6 +35578,7 @@ class Options {
         this.localAction = process.env.LOCAL_ACTION === "true";
         this.reviewPolicy = reviewPolicy;
         this.commentGreeting = commentGreeting;
+        this.ignoreKeywords = ignoreKeywords;
     }
     /**
      * Prints all configuration options using core.info for debugging purposes.
@@ -35607,6 +35609,23 @@ class Options {
         const ok = this.pathFilters.check(path);
         coreExports.debug(`checking path: ${path} => ${ok}`);
         return ok;
+    }
+    /**
+     * Checks if any of the configured ignore keywords are present in the description.
+     *
+     * @param description - The text to check for ignore keywords
+     * @returns Boolean indicating whether any ignore keywords were found
+     */
+    includeIgnoreKeywords(description) {
+        if (this.ignoreKeywords.length === 0) {
+            return false;
+        }
+        for (const keyword of this.ignoreKeywords) {
+            if (description.includes(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 class PathFilter {
@@ -47458,7 +47477,7 @@ const parseReviewComment = (reviewComment) => {
  * @returns Configured Options instance with all action parameters
  */
 const getOptions = () => {
-    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getInput("summary_model"), coreExports.getInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"));
+    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getInput("summary_model"), coreExports.getInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"));
 };
 const token = process.env.GITHUB_TOKEN || "";
 /**
@@ -47664,6 +47683,11 @@ async function run() {
         options.systemPrompt = systemPrompt;
         // Get pull request context information from GitHub context
         const prContext = getPrContext();
+        if (options.includeIgnoreKeywords(prContext.description)) {
+            // Skip the review if ignore keywords are found in the PR description
+            coreExports.info("Ignore keywords found in PR description. Skipping review.");
+            return;
+        }
         // Create authenticated GitHub API client
         const octokit = githubExports.getOctokit(token);
         // Initialize commenter for posting review comments

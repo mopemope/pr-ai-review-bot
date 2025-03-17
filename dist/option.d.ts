@@ -15,7 +15,8 @@ export declare class Options {
     localAction: boolean;
     reviewPolicy: string;
     commentGreeting: string;
-    constructor(debug: boolean, disableReview: boolean, disableReleaseNotes: boolean, pathFilters: string[] | null, systemPrompt: string, summaryModel: string, model: string, retries: string, timeoutMS: string, language: string, summarizeReleaseNotes: string, releaseNotesTitle: string, useFileContent: boolean, reviewPolicy: string, commentGreeting: string);
+    ignoreKeywords: string[];
+    constructor(debug: boolean, disableReview: boolean, disableReleaseNotes: boolean, pathFilters: string[] | null, systemPrompt: string, summaryModel: string, model: string, retries: string, timeoutMS: string, language: string, summarizeReleaseNotes: string, releaseNotesTitle: string, useFileContent: boolean, reviewPolicy: string, commentGreeting: string, ignoreKeywords: string[]);
     /**
      * Prints all configuration options using core.info for debugging purposes.
      * Displays each option value in the GitHub Actions log.
@@ -29,6 +30,13 @@ export declare class Options {
      * @returns Boolean indicating whether the path should be included
      */
     checkPath(path: string): boolean;
+    /**
+     * Checks if any of the configured ignore keywords are present in the description.
+     *
+     * @param description - The text to check for ignore keywords
+     * @returns Boolean indicating whether any ignore keywords were found
+     */
+    includeIgnoreKeywords(description: string): boolean;
 }
 export declare class PathFilter {
     private readonly rules;
