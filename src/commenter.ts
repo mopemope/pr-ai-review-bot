@@ -320,9 +320,8 @@ ${body}`
     const allCommits: string[] = []
     let page = 1
     let commits = null
-
     do {
-      commits = await this.octokit.rest.pulls.listCommits({
+      const response = await this.octokit.rest.pulls.listCommits({
         owner: this.prContext.owner,
         repo: this.prContext.repo,
         pull_number: this.prContext.pullRequestNumber,
@@ -330,9 +329,14 @@ ${body}`
         page
       })
 
-      allCommits.push(...commits.data.map((commit) => commit.sha))
+      if (response.status !== 200) {
+        warning(`Failed to list commits: ${response.status}`)
+        break
+      }
+      commits = response.data
+      allCommits.push(...commits.map((commit) => commit.sha))
       page++
-    } while (commits.data.length > 0)
+    } while (commits.length > 0)
 
     return allCommits
   }
