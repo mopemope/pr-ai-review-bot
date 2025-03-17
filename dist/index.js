@@ -39713,18 +39713,17 @@ Anthropic.ModelInfosPage = ModelInfosPage;
 Anthropic.Beta = Beta$1;
 const { HUMAN_PROMPT, AI_PROMPT } = Anthropic;
 
-const defaultModel$1 = "claude-3-5-haiku-20241022";
 const apiKey$2 = process.env.ANTHROPIC_API_KEY || "";
 class ClaudeClient {
     client;
     model;
     options;
-    constructor(options) {
+    constructor(modelName, options) {
         this.options = options;
         this.client = new Anthropic({
             apiKey: apiKey$2
         });
-        this.model = getModelName(options.model) || defaultModel$1;
+        this.model = getModelName(modelName);
         if (this.options.debug) {
             coreExports.debug("Claude client initialized");
             coreExports.debug(`Using model: ${this.model}`);
@@ -47326,7 +47325,7 @@ const createChatBotFromModel = (modelName, options) => {
         return new GeminiClient(options);
     }
     if (modelName.startsWith("anthropic/")) {
-        return new ClaudeClient(options);
+        return new ClaudeClient(modelName, options);
     }
     throw new Error(`Unsupported model: ${modelName}`);
 };

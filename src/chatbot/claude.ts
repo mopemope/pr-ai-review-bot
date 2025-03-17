@@ -5,7 +5,6 @@ import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
 import { type ChatBot, type Message, getModelName } from "./index.js"
 
-const defaultModel = "claude-3-5-haiku-20241022"
 const apiKey = process.env.ANTHROPIC_API_KEY || ""
 
 export class ClaudeClient implements ChatBot {
@@ -13,12 +12,12 @@ export class ClaudeClient implements ChatBot {
   private model: string
   private options: Options
 
-  constructor(options: Options) {
+  constructor(modelName: string, options: Options) {
     this.options = options
     this.client = new Anthropic({
       apiKey: apiKey
     })
-    this.model = getModelName(options.model) || defaultModel
+    this.model = getModelName(modelName)
 
     if (this.options.debug) {
       debug("Claude client initialized")
