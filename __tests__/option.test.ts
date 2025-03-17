@@ -26,7 +26,8 @@ describe("Options", () => {
         "Release Notes Title",
         true,
         "review policy",
-        "default greeting"
+        "default greeting",
+        ["keyword1", "keyword2"]
       )
 
       expect(options.debug).toBe(true)
@@ -46,6 +47,7 @@ describe("Options", () => {
       expect(options.summarizeReleaseNotes).toBe("Please summarize the changes")
       expect(options.reviewPolicy).toBe("review policy")
       expect(options.commentGreeting).toBe("default greeting")
+      expect(options.ignoreKeywords).toEqual(["keyword1", "keyword2"])
     })
   })
 
@@ -66,7 +68,8 @@ describe("Options", () => {
         "",
         true,
         "review policy",
-        ""
+        "",
+        []
       )
 
       expect(options.checkPath("src/main.ts")).toBe(true)

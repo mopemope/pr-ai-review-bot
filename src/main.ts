@@ -2,6 +2,7 @@ import {
   getBooleanInput,
   getInput,
   getMultilineInput,
+  info,
   setFailed,
   warning
 } from "@actions/core"
@@ -37,7 +38,8 @@ const getOptions = () => {
     getInput("release_notes_title"),
     getBooleanInput("use_file_content"),
     getInput("custom_review_policy"),
-    getInput("comment_greeting")
+    getInput("comment_greeting"),
+    getMultilineInput("ignore_keywords")
   )
 }
 
@@ -301,6 +303,12 @@ export async function run(): Promise<void> {
 
     // Get pull request context information from GitHub context
     const prContext = getPrContext()
+
+    if (options.includeIgnoreKeywords(prContext.description)) {
+      // Skip the review if ignore keywords are found in the PR description
+      info("Ignore keywords found in PR description. Skipping review.")
+      return
+    }
 
     // Create authenticated GitHub API client
     const octokit = getOctokit(token)

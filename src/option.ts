@@ -18,6 +18,7 @@ export class Options {
   localAction: boolean
   reviewPolicy: string
   commentGreeting: string
+  ignoreKeywords: string[]
 
   constructor(
     debug: boolean,
@@ -34,7 +35,8 @@ export class Options {
     releaseNotesTitle: string,
     useFileContent: boolean,
     reviewPolicy: string,
-    commentGreeting: string
+    commentGreeting: string,
+    ignoreKeywords: string[]
   ) {
     this.debug = debug
     this.disableReview = disableReview
@@ -52,6 +54,7 @@ export class Options {
     this.localAction = process.env.LOCAL_ACTION === "true"
     this.reviewPolicy = reviewPolicy
     this.commentGreeting = commentGreeting
+    this.ignoreKeywords = ignoreKeywords
   }
 
   /**
@@ -84,6 +87,24 @@ export class Options {
     const ok = this.pathFilters.check(path)
     debug(`checking path: ${path} => ${ok}`)
     return ok
+  }
+
+  /**
+   * Checks if any of the configured ignore keywords are present in the description.
+   *
+   * @param description - The text to check for ignore keywords
+   * @returns Boolean indicating whether any ignore keywords were found
+   */
+  includeIgnoreKeywords(description: string): boolean {
+    if (this.ignoreKeywords.length === 0) {
+      return false
+    }
+    for (const keyword of this.ignoreKeywords) {
+      if (description.includes(keyword)) {
+        return true
+      }
+    }
+    return false
   }
 }
 

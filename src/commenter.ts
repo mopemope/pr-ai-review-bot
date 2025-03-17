@@ -382,7 +382,7 @@ ${body}`
       pull_number: this.prContext.pullRequestNumber,
       commit_id: this.prContext.headCommitId, // The commit SHA to place the comment on
       path: filename, // The file path where the comment should appear
-      body: `${REVIEW_START_TAG}\n${review.comment}\n${REVIEW_END_TAG}` // The actual comment content
+      body: `${REVIEW_START_TAG}\n\n${review.comment}\n\n${REVIEW_END_TAG}` // The actual comment content
     }
 
     // Set line parameters appropriately
