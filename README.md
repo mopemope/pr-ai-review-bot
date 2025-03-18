@@ -157,14 +157,6 @@ model: anthropic/claude-3-sonnet
 summary_model: anthropic/claude-3-haiku
 ```
 
-### API Keys
-
-Make sure to provide the appropriate API keys as environment variables:
-
-- OpenAI: `OPENAI_API_KEY`
-- Google Gemini: `GEMINI_API_KEY`
-- Anthropic Claude: `ANTHROPIC_API_KEY`
-
 ## Model Fallback Mechanism
 
 This action includes a robust model fallback system to ensure reliability in
