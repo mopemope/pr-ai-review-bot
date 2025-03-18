@@ -37430,7 +37430,7 @@ let APIClient$1 = class APIClient {
             const maxRetries = options.maxRetries ?? this.maxRetries;
             timeoutMillis = this.calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries);
         }
-        await sleep$1(timeoutMillis);
+        await sleep$2(timeoutMillis);
         return this.makeRequest(options, retriesRemaining - 1);
     }
     calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries) {
@@ -37701,7 +37701,7 @@ const startsWithSchemeRegexp$1 = /^[a-z][a-z0-9+.-]*:/i;
 const isAbsoluteURL$1 = (url) => {
     return startsWithSchemeRegexp$1.test(url);
 };
-const sleep$1 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep$2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const validatePositiveInteger$1 = (name, n) => {
     if (typeof n !== 'number' || !Number.isInteger(n)) {
         throw new AnthropicError(`${name} must be an integer`);
@@ -39713,25 +39713,1706 @@ Anthropic.ModelInfosPage = ModelInfosPage;
 Anthropic.Beta = Beta$1;
 const { HUMAN_PROMPT, AI_PROMPT } = Anthropic;
 
+const VERSION = '4.87.3'; // x-release-please-version
+
+let auto = false;
+let kind = undefined;
+let fetch$1 = undefined;
+let FormData$1 = undefined;
+let File$1 = undefined;
+let ReadableStream$1 = undefined;
+let getMultipartRequestOptions = undefined;
+let getDefaultAgent = undefined;
+let fileFromPath = undefined;
+let isFsReadStream = undefined;
+function setShims(shims, options = { auto: false }) {
+    if (auto) {
+        throw new Error(`you must \`import 'openai/shims/${shims.kind}'\` before importing anything else from openai`);
+    }
+    if (kind) {
+        throw new Error(`can't \`import 'openai/shims/${shims.kind}'\` after \`import 'openai/shims/${kind}'\``);
+    }
+    auto = options.auto;
+    kind = shims.kind;
+    fetch$1 = shims.fetch;
+    FormData$1 = shims.FormData;
+    File$1 = shims.File;
+    ReadableStream$1 = shims.ReadableStream;
+    getMultipartRequestOptions = shims.getMultipartRequestOptions;
+    getDefaultAgent = shims.getDefaultAgent;
+    fileFromPath = shims.fileFromPath;
+    isFsReadStream = shims.isFsReadStream;
+}
+
+/**
+ * Disclaimer: modules in _shims aren't intended to be imported by SDK users.
+ */
+class MultipartBody {
+    constructor(body) {
+        this.body = body;
+    }
+    get [Symbol.toStringTag]() {
+        return 'MultipartBody';
+    }
+}
+
+function getRuntime({ manuallyImported } = {}) {
+    const recommendation = manuallyImported ?
+        `You may need to use polyfills`
+        : `Add one of these imports before your first \`import … from 'openai'\`:
+- \`import 'openai/shims/node'\` (if you're running on Node)
+- \`import 'openai/shims/web'\` (otherwise)
+`;
+    let _fetch, _Request, _Response, _Headers;
+    try {
+        // @ts-ignore
+        _fetch = fetch;
+        // @ts-ignore
+        _Request = Request;
+        // @ts-ignore
+        _Response = Response;
+        // @ts-ignore
+        _Headers = Headers;
+    }
+    catch (error) {
+        throw new Error(`this environment is missing the following Web Fetch API type: ${error.message}. ${recommendation}`);
+    }
+    return {
+        kind: 'web',
+        fetch: _fetch,
+        Request: _Request,
+        Response: _Response,
+        Headers: _Headers,
+        FormData: 
+        // @ts-ignore
+        typeof FormData !== 'undefined' ? FormData : (class FormData {
+            // @ts-ignore
+            constructor() {
+                throw new Error(`file uploads aren't supported in this environment yet as 'FormData' is undefined. ${recommendation}`);
+            }
+        }),
+        Blob: typeof Blob !== 'undefined' ? Blob : (class Blob {
+            constructor() {
+                throw new Error(`file uploads aren't supported in this environment yet as 'Blob' is undefined. ${recommendation}`);
+            }
+        }),
+        File: 
+        // @ts-ignore
+        typeof File !== 'undefined' ? File : (class File {
+            // @ts-ignore
+            constructor() {
+                throw new Error(`file uploads aren't supported in this environment yet as 'File' is undefined. ${recommendation}`);
+            }
+        }),
+        ReadableStream: 
+        // @ts-ignore
+        typeof ReadableStream !== 'undefined' ? ReadableStream : (class ReadableStream {
+            // @ts-ignore
+            constructor() {
+                throw new Error(`streaming isn't supported in this environment yet as 'ReadableStream' is undefined. ${recommendation}`);
+            }
+        }),
+        getMultipartRequestOptions: async (
+        // @ts-ignore
+        form, opts) => ({
+            ...opts,
+            body: new MultipartBody(form),
+        }),
+        getDefaultAgent: (url) => undefined,
+        fileFromPath: () => {
+            throw new Error('The `fileFromPath` function is only supported in Node. See the README for more details: https://www.github.com/openai/openai-node#file-uploads');
+        },
+        isFsReadStream: (value) => false,
+    };
+}
+
+/**
+ * Disclaimer: modules in _shims aren't intended to be imported by SDK users.
+ */
+if (!kind) setShims(getRuntime(), { auto: true });
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class OpenAIError extends Error {
+}
+class APIError extends OpenAIError {
+    constructor(status, error, message, headers) {
+        super(`${APIError.makeMessage(status, error, message)}`);
+        this.status = status;
+        this.headers = headers;
+        this.request_id = headers?.['x-request-id'];
+        this.error = error;
+        const data = error;
+        this.code = data?.['code'];
+        this.param = data?.['param'];
+        this.type = data?.['type'];
+    }
+    static makeMessage(status, error, message) {
+        const msg = error?.message ?
+            typeof error.message === 'string' ?
+                error.message
+                : JSON.stringify(error.message)
+            : error ? JSON.stringify(error)
+                : message;
+        if (status && msg) {
+            return `${status} ${msg}`;
+        }
+        if (status) {
+            return `${status} status code (no body)`;
+        }
+        if (msg) {
+            return msg;
+        }
+        return '(no status code or body)';
+    }
+    static generate(status, errorResponse, message, headers) {
+        if (!status || !headers) {
+            return new APIConnectionError({ message, cause: castToError(errorResponse) });
+        }
+        const error = errorResponse?.['error'];
+        if (status === 400) {
+            return new BadRequestError(status, error, message, headers);
+        }
+        if (status === 401) {
+            return new AuthenticationError(status, error, message, headers);
+        }
+        if (status === 403) {
+            return new PermissionDeniedError(status, error, message, headers);
+        }
+        if (status === 404) {
+            return new NotFoundError(status, error, message, headers);
+        }
+        if (status === 409) {
+            return new ConflictError(status, error, message, headers);
+        }
+        if (status === 422) {
+            return new UnprocessableEntityError(status, error, message, headers);
+        }
+        if (status === 429) {
+            return new RateLimitError(status, error, message, headers);
+        }
+        if (status >= 500) {
+            return new InternalServerError(status, error, message, headers);
+        }
+        return new APIError(status, error, message, headers);
+    }
+}
+class APIUserAbortError extends APIError {
+    constructor({ message } = {}) {
+        super(undefined, undefined, message || 'Request was aborted.', undefined);
+    }
+}
+class APIConnectionError extends APIError {
+    constructor({ message, cause }) {
+        super(undefined, undefined, message || 'Connection error.', undefined);
+        // in some environments the 'cause' property is already declared
+        // @ts-ignore
+        if (cause)
+            this.cause = cause;
+    }
+}
+class APIConnectionTimeoutError extends APIConnectionError {
+    constructor({ message } = {}) {
+        super({ message: message ?? 'Request timed out.' });
+    }
+}
+class BadRequestError extends APIError {
+}
+class AuthenticationError extends APIError {
+}
+class PermissionDeniedError extends APIError {
+}
+class NotFoundError extends APIError {
+}
+class ConflictError extends APIError {
+}
+class UnprocessableEntityError extends APIError {
+}
+class RateLimitError extends APIError {
+}
+class InternalServerError extends APIError {
+}
+class LengthFinishReasonError extends OpenAIError {
+    constructor() {
+        super(`Could not parse response content as the length limit was reached`);
+    }
+}
+class ContentFilterFinishReasonError extends OpenAIError {
+    constructor() {
+        super(`Could not parse response content as the request was rejected by the content filter`);
+    }
+}
+
+var __classPrivateFieldSet$5 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet$6 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _LineDecoder_carriageReturnIndex;
+/**
+ * A re-implementation of httpx's `LineDecoder` in Python that handles incrementally
+ * reading lines from text.
+ *
+ * https://github.com/encode/httpx/blob/920333ea98118e9cf617f246905d7b202510941c/httpx/_decoders.py#L258
+ */
+class LineDecoder {
+    constructor() {
+        _LineDecoder_carriageReturnIndex.set(this, void 0);
+        this.buffer = new Uint8Array();
+        __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, null, "f");
+    }
+    decode(chunk) {
+        if (chunk == null) {
+            return [];
+        }
+        const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk)
+            : typeof chunk === 'string' ? new TextEncoder().encode(chunk)
+                : chunk;
+        let newData = new Uint8Array(this.buffer.length + binaryChunk.length);
+        newData.set(this.buffer);
+        newData.set(binaryChunk, this.buffer.length);
+        this.buffer = newData;
+        const lines = [];
+        let patternIndex;
+        while ((patternIndex = findNewlineIndex(this.buffer, __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f"))) != null) {
+            if (patternIndex.carriage && __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") == null) {
+                // skip until we either get a corresponding `\n`, a new `\r` or nothing
+                __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, patternIndex.index, "f");
+                continue;
+            }
+            // we got double \r or \rtext\n
+            if (__classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") != null &&
+                (patternIndex.index !== __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") + 1 || patternIndex.carriage)) {
+                lines.push(this.decodeText(this.buffer.slice(0, __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") - 1)));
+                this.buffer = this.buffer.slice(__classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f"));
+                __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, null, "f");
+                continue;
+            }
+            const endIndex = __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") !== null ? patternIndex.preceding - 1 : patternIndex.preceding;
+            const line = this.decodeText(this.buffer.slice(0, endIndex));
+            lines.push(line);
+            this.buffer = this.buffer.slice(patternIndex.index);
+            __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, null, "f");
+        }
+        return lines;
+    }
+    decodeText(bytes) {
+        if (bytes == null)
+            return '';
+        if (typeof bytes === 'string')
+            return bytes;
+        // Node:
+        if (typeof Buffer !== 'undefined') {
+            if (bytes instanceof Buffer) {
+                return bytes.toString();
+            }
+            if (bytes instanceof Uint8Array) {
+                return Buffer.from(bytes).toString();
+            }
+            throw new OpenAIError(`Unexpected: received non-Uint8Array (${bytes.constructor.name}) stream chunk in an environment with a global "Buffer" defined, which this library assumes to be Node. Please report this error.`);
+        }
+        // Browser
+        if (typeof TextDecoder !== 'undefined') {
+            if (bytes instanceof Uint8Array || bytes instanceof ArrayBuffer) {
+                this.textDecoder ?? (this.textDecoder = new TextDecoder('utf8'));
+                return this.textDecoder.decode(bytes);
+            }
+            throw new OpenAIError(`Unexpected: received non-Uint8Array/ArrayBuffer (${bytes.constructor.name}) in a web platform. Please report this error.`);
+        }
+        throw new OpenAIError(`Unexpected: neither Buffer nor TextDecoder are available as globals. Please report this error.`);
+    }
+    flush() {
+        if (!this.buffer.length) {
+            return [];
+        }
+        return this.decode('\n');
+    }
+}
+_LineDecoder_carriageReturnIndex = new WeakMap();
+// prettier-ignore
+LineDecoder.NEWLINE_CHARS = new Set(['\n', '\r']);
+LineDecoder.NEWLINE_REGEXP = /\r\n|[\n\r]/g;
+/**
+ * This function searches the buffer for the end patterns, (\r or \n)
+ * and returns an object with the index preceding the matched newline and the
+ * index after the newline char. `null` is returned if no new line is found.
+ *
+ * ```ts
+ * findNewLineIndex('abc\ndef') -> { preceding: 2, index: 3 }
+ * ```
+ */
+function findNewlineIndex(buffer, startIndex) {
+    const newline = 0x0a; // \n
+    const carriage = 0x0d; // \r
+    for (let i = startIndex ?? 0; i < buffer.length; i++) {
+        if (buffer[i] === newline) {
+            return { preceding: i, index: i + 1, carriage: false };
+        }
+        if (buffer[i] === carriage) {
+            return { preceding: i, index: i + 1, carriage: true };
+        }
+    }
+    return null;
+}
+function findDoubleNewlineIndex(buffer) {
+    // This function searches the buffer for the end patterns (\r\r, \n\n, \r\n\r\n)
+    // and returns the index right after the first occurrence of any pattern,
+    // or -1 if none of the patterns are found.
+    const newline = 0x0a; // \n
+    const carriage = 0x0d; // \r
+    for (let i = 0; i < buffer.length - 1; i++) {
+        if (buffer[i] === newline && buffer[i + 1] === newline) {
+            // \n\n
+            return i + 2;
+        }
+        if (buffer[i] === carriage && buffer[i + 1] === carriage) {
+            // \r\r
+            return i + 2;
+        }
+        if (buffer[i] === carriage &&
+            buffer[i + 1] === newline &&
+            i + 3 < buffer.length &&
+            buffer[i + 2] === carriage &&
+            buffer[i + 3] === newline) {
+            // \r\n\r\n
+            return i + 4;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Most browsers don't yet have async iterable support for ReadableStream,
+ * and Node has a very different way of reading bytes from its "ReadableStream".
+ *
+ * This polyfill was pulled from https://github.com/MattiasBuelens/web-streams-polyfill/pull/122#issuecomment-1627354490
+ */
+function ReadableStreamToAsyncIterable(stream) {
+    if (stream[Symbol.asyncIterator])
+        return stream;
+    const reader = stream.getReader();
+    return {
+        async next() {
+            try {
+                const result = await reader.read();
+                if (result?.done)
+                    reader.releaseLock(); // release lock when stream becomes closed
+                return result;
+            }
+            catch (e) {
+                reader.releaseLock(); // release lock when stream becomes errored
+                throw e;
+            }
+        },
+        async return() {
+            const cancelPromise = reader.cancel();
+            reader.releaseLock();
+            await cancelPromise;
+            return { done: true, value: undefined };
+        },
+        [Symbol.asyncIterator]() {
+            return this;
+        },
+    };
+}
+
+class Stream {
+    constructor(iterator, controller) {
+        this.iterator = iterator;
+        this.controller = controller;
+    }
+    static fromSSEResponse(response, controller) {
+        let consumed = false;
+        async function* iterator() {
+            if (consumed) {
+                throw new Error('Cannot iterate over a consumed stream, use `.tee()` to split the stream.');
+            }
+            consumed = true;
+            let done = false;
+            try {
+                for await (const sse of _iterSSEMessages(response, controller)) {
+                    if (done)
+                        continue;
+                    if (sse.data.startsWith('[DONE]')) {
+                        done = true;
+                        continue;
+                    }
+                    if (sse.event === null || sse.event.startsWith('response.')) {
+                        let data;
+                        try {
+                            data = JSON.parse(sse.data);
+                        }
+                        catch (e) {
+                            console.error(`Could not parse message into JSON:`, sse.data);
+                            console.error(`From chunk:`, sse.raw);
+                            throw e;
+                        }
+                        if (data && data.error) {
+                            throw new APIError(undefined, data.error, undefined, undefined);
+                        }
+                        yield data;
+                    }
+                    else {
+                        let data;
+                        try {
+                            data = JSON.parse(sse.data);
+                        }
+                        catch (e) {
+                            console.error(`Could not parse message into JSON:`, sse.data);
+                            console.error(`From chunk:`, sse.raw);
+                            throw e;
+                        }
+                        // TODO: Is this where the error should be thrown?
+                        if (sse.event == 'error') {
+                            throw new APIError(undefined, data.error, data.message, undefined);
+                        }
+                        yield { event: sse.event, data: data };
+                    }
+                }
+                done = true;
+            }
+            catch (e) {
+                // If the user calls `stream.controller.abort()`, we should exit without throwing.
+                if (e instanceof Error && e.name === 'AbortError')
+                    return;
+                throw e;
+            }
+            finally {
+                // If the user `break`s, abort the ongoing request.
+                if (!done)
+                    controller.abort();
+            }
+        }
+        return new Stream(iterator, controller);
+    }
+    /**
+     * Generates a Stream from a newline-separated ReadableStream
+     * where each item is a JSON value.
+     */
+    static fromReadableStream(readableStream, controller) {
+        let consumed = false;
+        async function* iterLines() {
+            const lineDecoder = new LineDecoder();
+            const iter = ReadableStreamToAsyncIterable(readableStream);
+            for await (const chunk of iter) {
+                for (const line of lineDecoder.decode(chunk)) {
+                    yield line;
+                }
+            }
+            for (const line of lineDecoder.flush()) {
+                yield line;
+            }
+        }
+        async function* iterator() {
+            if (consumed) {
+                throw new Error('Cannot iterate over a consumed stream, use `.tee()` to split the stream.');
+            }
+            consumed = true;
+            let done = false;
+            try {
+                for await (const line of iterLines()) {
+                    if (done)
+                        continue;
+                    if (line)
+                        yield JSON.parse(line);
+                }
+                done = true;
+            }
+            catch (e) {
+                // If the user calls `stream.controller.abort()`, we should exit without throwing.
+                if (e instanceof Error && e.name === 'AbortError')
+                    return;
+                throw e;
+            }
+            finally {
+                // If the user `break`s, abort the ongoing request.
+                if (!done)
+                    controller.abort();
+            }
+        }
+        return new Stream(iterator, controller);
+    }
+    [Symbol.asyncIterator]() {
+        return this.iterator();
+    }
+    /**
+     * Splits the stream into two streams which can be
+     * independently read from at different speeds.
+     */
+    tee() {
+        const left = [];
+        const right = [];
+        const iterator = this.iterator();
+        const teeIterator = (queue) => {
+            return {
+                next: () => {
+                    if (queue.length === 0) {
+                        const result = iterator.next();
+                        left.push(result);
+                        right.push(result);
+                    }
+                    return queue.shift();
+                },
+            };
+        };
+        return [
+            new Stream(() => teeIterator(left), this.controller),
+            new Stream(() => teeIterator(right), this.controller),
+        ];
+    }
+    /**
+     * Converts this stream to a newline-separated ReadableStream of
+     * JSON stringified values in the stream
+     * which can be turned back into a Stream with `Stream.fromReadableStream()`.
+     */
+    toReadableStream() {
+        const self = this;
+        let iter;
+        const encoder = new TextEncoder();
+        return new ReadableStream$1({
+            async start() {
+                iter = self[Symbol.asyncIterator]();
+            },
+            async pull(ctrl) {
+                try {
+                    const { value, done } = await iter.next();
+                    if (done)
+                        return ctrl.close();
+                    const bytes = encoder.encode(JSON.stringify(value) + '\n');
+                    ctrl.enqueue(bytes);
+                }
+                catch (err) {
+                    ctrl.error(err);
+                }
+            },
+            async cancel() {
+                await iter.return?.();
+            },
+        });
+    }
+}
+async function* _iterSSEMessages(response, controller) {
+    if (!response.body) {
+        controller.abort();
+        throw new OpenAIError(`Attempted to iterate over a response with no body`);
+    }
+    const sseDecoder = new SSEDecoder();
+    const lineDecoder = new LineDecoder();
+    const iter = ReadableStreamToAsyncIterable(response.body);
+    for await (const sseChunk of iterSSEChunks(iter)) {
+        for (const line of lineDecoder.decode(sseChunk)) {
+            const sse = sseDecoder.decode(line);
+            if (sse)
+                yield sse;
+        }
+    }
+    for (const line of lineDecoder.flush()) {
+        const sse = sseDecoder.decode(line);
+        if (sse)
+            yield sse;
+    }
+}
+/**
+ * Given an async iterable iterator, iterates over it and yields full
+ * SSE chunks, i.e. yields when a double new-line is encountered.
+ */
+async function* iterSSEChunks(iterator) {
+    let data = new Uint8Array();
+    for await (const chunk of iterator) {
+        if (chunk == null) {
+            continue;
+        }
+        const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk)
+            : typeof chunk === 'string' ? new TextEncoder().encode(chunk)
+                : chunk;
+        let newData = new Uint8Array(data.length + binaryChunk.length);
+        newData.set(data);
+        newData.set(binaryChunk, data.length);
+        data = newData;
+        let patternIndex;
+        while ((patternIndex = findDoubleNewlineIndex(data)) !== -1) {
+            yield data.slice(0, patternIndex);
+            data = data.slice(patternIndex);
+        }
+    }
+    if (data.length > 0) {
+        yield data;
+    }
+}
+class SSEDecoder {
+    constructor() {
+        this.event = null;
+        this.data = [];
+        this.chunks = [];
+    }
+    decode(line) {
+        if (line.endsWith('\r')) {
+            line = line.substring(0, line.length - 1);
+        }
+        if (!line) {
+            // empty line and we didn't previously encounter any messages
+            if (!this.event && !this.data.length)
+                return null;
+            const sse = {
+                event: this.event,
+                data: this.data.join('\n'),
+                raw: this.chunks,
+            };
+            this.event = null;
+            this.data = [];
+            this.chunks = [];
+            return sse;
+        }
+        this.chunks.push(line);
+        if (line.startsWith(':')) {
+            return null;
+        }
+        let [fieldname, _, value] = partition(line, ':');
+        if (value.startsWith(' ')) {
+            value = value.substring(1);
+        }
+        if (fieldname === 'event') {
+            this.event = value;
+        }
+        else if (fieldname === 'data') {
+            this.data.push(value);
+        }
+        return null;
+    }
+}
+function partition(str, delimiter) {
+    const index = str.indexOf(delimiter);
+    if (index !== -1) {
+        return [str.substring(0, index), delimiter, str.substring(index + delimiter.length)];
+    }
+    return [str, '', ''];
+}
+
+const isResponseLike = (value) => value != null &&
+    typeof value === 'object' &&
+    typeof value.url === 'string' &&
+    typeof value.blob === 'function';
+const isFileLike = (value) => value != null &&
+    typeof value === 'object' &&
+    typeof value.name === 'string' &&
+    typeof value.lastModified === 'number' &&
+    isBlobLike(value);
+/**
+ * The BlobLike type omits arrayBuffer() because @types/node-fetch@^2.6.4 lacks it; but this check
+ * adds the arrayBuffer() method type because it is available and used at runtime
+ */
+const isBlobLike = (value) => value != null &&
+    typeof value === 'object' &&
+    typeof value.size === 'number' &&
+    typeof value.type === 'string' &&
+    typeof value.text === 'function' &&
+    typeof value.slice === 'function' &&
+    typeof value.arrayBuffer === 'function';
+const isUploadable = (value) => {
+    return isFileLike(value) || isResponseLike(value) || isFsReadStream(value);
+};
+/**
+ * Helper for creating a {@link File} to pass to an SDK upload method from a variety of different data formats
+ * @param value the raw content of the file.  Can be an {@link Uploadable}, {@link BlobLikePart}, or {@link AsyncIterable} of {@link BlobLikePart}s
+ * @param {string=} name the name of the file. If omitted, toFile will try to determine a file name from bits if possible
+ * @param {Object=} options additional properties
+ * @param {string=} options.type the MIME type of the content
+ * @param {number=} options.lastModified the last modified timestamp
+ * @returns a {@link File} with the given properties
+ */
+async function toFile(value, name, options) {
+    // If it's a promise, resolve it.
+    value = await value;
+    // If we've been given a `File` we don't need to do anything
+    if (isFileLike(value)) {
+        return value;
+    }
+    if (isResponseLike(value)) {
+        const blob = await value.blob();
+        name || (name = new URL(value.url).pathname.split(/[\\/]/).pop() ?? 'unknown_file');
+        // we need to convert the `Blob` into an array buffer because the `Blob` class
+        // that `node-fetch` defines is incompatible with the web standard which results
+        // in `new File` interpreting it as a string instead of binary data.
+        const data = isBlobLike(blob) ? [(await blob.arrayBuffer())] : [blob];
+        return new File$1(data, name, options);
+    }
+    const bits = await getBytes(value);
+    name || (name = getName(value) ?? 'unknown_file');
+    if (!options?.type) {
+        const type = bits[0]?.type;
+        if (typeof type === 'string') {
+            options = { ...options, type };
+        }
+    }
+    return new File$1(bits, name, options);
+}
+async function getBytes(value) {
+    let parts = [];
+    if (typeof value === 'string' ||
+        ArrayBuffer.isView(value) || // includes Uint8Array, Buffer, etc.
+        value instanceof ArrayBuffer) {
+        parts.push(value);
+    }
+    else if (isBlobLike(value)) {
+        parts.push(await value.arrayBuffer());
+    }
+    else if (isAsyncIterableIterator(value) // includes Readable, ReadableStream, etc.
+    ) {
+        for await (const chunk of value) {
+            parts.push(chunk); // TODO, consider validating?
+        }
+    }
+    else {
+        throw new Error(`Unexpected data type: ${typeof value}; constructor: ${value?.constructor
+            ?.name}; props: ${propsForError(value)}`);
+    }
+    return parts;
+}
+function propsForError(value) {
+    const props = Object.getOwnPropertyNames(value);
+    return `[${props.map((p) => `"${p}"`).join(', ')}]`;
+}
+function getName(value) {
+    return (getStringFromMaybeBuffer(value.name) ||
+        getStringFromMaybeBuffer(value.filename) ||
+        // For fs.ReadStream
+        getStringFromMaybeBuffer(value.path)?.split(/[\\/]/).pop());
+}
+const getStringFromMaybeBuffer = (x) => {
+    if (typeof x === 'string')
+        return x;
+    if (typeof Buffer !== 'undefined' && x instanceof Buffer)
+        return String(x);
+    return undefined;
+};
+const isAsyncIterableIterator = (value) => value != null && typeof value === 'object' && typeof value[Symbol.asyncIterator] === 'function';
+const isMultipartBody = (body) => body && typeof body === 'object' && body.body && body[Symbol.toStringTag] === 'MultipartBody';
+const multipartFormRequestOptions = async (opts) => {
+    const form = await createForm(opts.body);
+    return getMultipartRequestOptions(form, opts);
+};
+const createForm = async (body) => {
+    const form = new FormData$1();
+    await Promise.all(Object.entries(body || {}).map(([key, value]) => addFormValue(form, key, value)));
+    return form;
+};
+const addFormValue = async (form, key, value) => {
+    if (value === undefined)
+        return;
+    if (value == null) {
+        throw new TypeError(`Received null for "${key}"; to pass null in FormData, you must use the string 'null'`);
+    }
+    // TODO: make nested formats configurable
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        form.append(key, String(value));
+    }
+    else if (isUploadable(value)) {
+        const file = await toFile(value);
+        form.append(key, file);
+    }
+    else if (Array.isArray(value)) {
+        await Promise.all(value.map((entry) => addFormValue(form, key + '[]', entry)));
+    }
+    else if (typeof value === 'object') {
+        await Promise.all(Object.entries(value).map(([name, prop]) => addFormValue(form, `${key}[${name}]`, prop)));
+    }
+    else {
+        throw new TypeError(`Invalid value given to form, expected a string, number, boolean, object, Array, File or Blob but got ${value} instead`);
+    }
+};
+
+var __classPrivateFieldSet$4 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet$5 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _AbstractPage_client;
+async function defaultParseResponse(props) {
+    const { response } = props;
+    if (props.options.stream) {
+        debug('response', response.status, response.url, response.headers, response.body);
+        // Note: there is an invariant here that isn't represented in the type system
+        // that if you set `stream: true` the response type must also be `Stream<T>`
+        if (props.options.__streamClass) {
+            return props.options.__streamClass.fromSSEResponse(response, props.controller);
+        }
+        return Stream.fromSSEResponse(response, props.controller);
+    }
+    // fetch refuses to read the body when the status code is 204.
+    if (response.status === 204) {
+        return null;
+    }
+    if (props.options.__binaryResponse) {
+        return response;
+    }
+    const contentType = response.headers.get('content-type');
+    const mediaType = contentType?.split(';')[0]?.trim();
+    const isJSON = mediaType?.includes('application/json') || mediaType?.endsWith('+json');
+    if (isJSON) {
+        const json = await response.json();
+        debug('response', response.status, response.url, response.headers, json);
+        return _addRequestID(json, response);
+    }
+    const text = await response.text();
+    debug('response', response.status, response.url, response.headers, text);
+    // TODO handle blob, arraybuffer, other content types, etc.
+    return text;
+}
+function _addRequestID(value, response) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+    }
+    return Object.defineProperty(value, '_request_id', {
+        value: response.headers.get('x-request-id'),
+        enumerable: false,
+    });
+}
+/**
+ * A subclass of `Promise` providing additional helper methods
+ * for interacting with the SDK.
+ */
+class APIPromise extends Promise {
+    constructor(responsePromise, parseResponse = defaultParseResponse) {
+        super((resolve) => {
+            // this is maybe a bit weird but this has to be a no-op to not implicitly
+            // parse the response body; instead .then, .catch, .finally are overridden
+            // to parse the response
+            resolve(null);
+        });
+        this.responsePromise = responsePromise;
+        this.parseResponse = parseResponse;
+    }
+    _thenUnwrap(transform) {
+        return new APIPromise(this.responsePromise, async (props) => _addRequestID(transform(await this.parseResponse(props), props), props.response));
+    }
+    /**
+     * Gets the raw `Response` instance instead of parsing the response
+     * data.
+     *
+     * If you want to parse the response body but still get the `Response`
+     * instance, you can use {@link withResponse()}.
+     *
+     * 👋 Getting the wrong TypeScript type for `Response`?
+     * Try setting `"moduleResolution": "NodeNext"` if you can,
+     * or add one of these imports before your first `import … from 'openai'`:
+     * - `import 'openai/shims/node'` (if you're running on Node)
+     * - `import 'openai/shims/web'` (otherwise)
+     */
+    asResponse() {
+        return this.responsePromise.then((p) => p.response);
+    }
+    /**
+     * Gets the parsed response data, the raw `Response` instance and the ID of the request,
+     * returned via the X-Request-ID header which is useful for debugging requests and reporting
+     * issues to OpenAI.
+     *
+     * If you just want to get the raw `Response` instance without parsing it,
+     * you can use {@link asResponse()}.
+     *
+     *
+     * 👋 Getting the wrong TypeScript type for `Response`?
+     * Try setting `"moduleResolution": "NodeNext"` if you can,
+     * or add one of these imports before your first `import … from 'openai'`:
+     * - `import 'openai/shims/node'` (if you're running on Node)
+     * - `import 'openai/shims/web'` (otherwise)
+     */
+    async withResponse() {
+        const [data, response] = await Promise.all([this.parse(), this.asResponse()]);
+        return { data, response, request_id: response.headers.get('x-request-id') };
+    }
+    parse() {
+        if (!this.parsedPromise) {
+            this.parsedPromise = this.responsePromise.then(this.parseResponse);
+        }
+        return this.parsedPromise;
+    }
+    then(onfulfilled, onrejected) {
+        return this.parse().then(onfulfilled, onrejected);
+    }
+    catch(onrejected) {
+        return this.parse().catch(onrejected);
+    }
+    finally(onfinally) {
+        return this.parse().finally(onfinally);
+    }
+}
+class APIClient {
+    constructor({ baseURL, maxRetries = 2, timeout = 600000, // 10 minutes
+    httpAgent, fetch: overriddenFetch, }) {
+        this.baseURL = baseURL;
+        this.maxRetries = validatePositiveInteger('maxRetries', maxRetries);
+        this.timeout = validatePositiveInteger('timeout', timeout);
+        this.httpAgent = httpAgent;
+        this.fetch = overriddenFetch ?? fetch$1;
+    }
+    authHeaders(opts) {
+        return {};
+    }
+    /**
+     * Override this to add your own default headers, for example:
+     *
+     *  {
+     *    ...super.defaultHeaders(),
+     *    Authorization: 'Bearer 123',
+     *  }
+     */
+    defaultHeaders(opts) {
+        return {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': this.getUserAgent(),
+            ...getPlatformHeaders(),
+            ...this.authHeaders(opts),
+        };
+    }
+    /**
+     * Override this to add your own headers validation:
+     */
+    validateHeaders(headers, customHeaders) { }
+    defaultIdempotencyKey() {
+        return `stainless-node-retry-${uuid4()}`;
+    }
+    get(path, opts) {
+        return this.methodRequest('get', path, opts);
+    }
+    post(path, opts) {
+        return this.methodRequest('post', path, opts);
+    }
+    patch(path, opts) {
+        return this.methodRequest('patch', path, opts);
+    }
+    put(path, opts) {
+        return this.methodRequest('put', path, opts);
+    }
+    delete(path, opts) {
+        return this.methodRequest('delete', path, opts);
+    }
+    methodRequest(method, path, opts) {
+        return this.request(Promise.resolve(opts).then(async (opts) => {
+            const body = opts && isBlobLike(opts?.body) ? new DataView(await opts.body.arrayBuffer())
+                : opts?.body instanceof DataView ? opts.body
+                    : opts?.body instanceof ArrayBuffer ? new DataView(opts.body)
+                        : opts && ArrayBuffer.isView(opts?.body) ? new DataView(opts.body.buffer)
+                            : opts?.body;
+            return { method, path, ...opts, body };
+        }));
+    }
+    getAPIList(path, Page, opts) {
+        return this.requestAPIList(Page, { method: 'get', path, ...opts });
+    }
+    calculateContentLength(body) {
+        if (typeof body === 'string') {
+            if (typeof Buffer !== 'undefined') {
+                return Buffer.byteLength(body, 'utf8').toString();
+            }
+            if (typeof TextEncoder !== 'undefined') {
+                const encoder = new TextEncoder();
+                const encoded = encoder.encode(body);
+                return encoded.length.toString();
+            }
+        }
+        else if (ArrayBuffer.isView(body)) {
+            return body.byteLength.toString();
+        }
+        return null;
+    }
+    buildRequest(options, { retryCount = 0 } = {}) {
+        options = { ...options };
+        const { method, path, query, headers: headers = {} } = options;
+        const body = ArrayBuffer.isView(options.body) || (options.__binaryRequest && typeof options.body === 'string') ?
+            options.body
+            : isMultipartBody(options.body) ? options.body.body
+                : options.body ? JSON.stringify(options.body, null, 2)
+                    : null;
+        const contentLength = this.calculateContentLength(body);
+        const url = this.buildURL(path, query);
+        if ('timeout' in options)
+            validatePositiveInteger('timeout', options.timeout);
+        options.timeout = options.timeout ?? this.timeout;
+        const httpAgent = options.httpAgent ?? this.httpAgent ?? getDefaultAgent(url);
+        const minAgentTimeout = options.timeout + 1000;
+        if (typeof httpAgent?.options?.timeout === 'number' &&
+            minAgentTimeout > (httpAgent.options.timeout ?? 0)) {
+            // Allow any given request to bump our agent active socket timeout.
+            // This may seem strange, but leaking active sockets should be rare and not particularly problematic,
+            // and without mutating agent we would need to create more of them.
+            // This tradeoff optimizes for performance.
+            httpAgent.options.timeout = minAgentTimeout;
+        }
+        if (this.idempotencyHeader && method !== 'get') {
+            if (!options.idempotencyKey)
+                options.idempotencyKey = this.defaultIdempotencyKey();
+            headers[this.idempotencyHeader] = options.idempotencyKey;
+        }
+        const reqHeaders = this.buildHeaders({ options, headers, contentLength, retryCount });
+        const req = {
+            method,
+            ...(body && { body: body }),
+            headers: reqHeaders,
+            ...(httpAgent && { agent: httpAgent }),
+            // @ts-ignore node-fetch uses a custom AbortSignal type that is
+            // not compatible with standard web types
+            signal: options.signal ?? null,
+        };
+        return { req, url, timeout: options.timeout };
+    }
+    buildHeaders({ options, headers, contentLength, retryCount, }) {
+        const reqHeaders = {};
+        if (contentLength) {
+            reqHeaders['content-length'] = contentLength;
+        }
+        const defaultHeaders = this.defaultHeaders(options);
+        applyHeadersMut(reqHeaders, defaultHeaders);
+        applyHeadersMut(reqHeaders, headers);
+        // let builtin fetch set the Content-Type for multipart bodies
+        if (isMultipartBody(options.body) && kind !== 'node') {
+            delete reqHeaders['content-type'];
+        }
+        // Don't set theses headers if they were already set or removed through default headers or by the caller.
+        // We check `defaultHeaders` and `headers`, which can contain nulls, instead of `reqHeaders` to account
+        // for the removal case.
+        if (getHeader(defaultHeaders, 'x-stainless-retry-count') === undefined &&
+            getHeader(headers, 'x-stainless-retry-count') === undefined) {
+            reqHeaders['x-stainless-retry-count'] = String(retryCount);
+        }
+        if (getHeader(defaultHeaders, 'x-stainless-timeout') === undefined &&
+            getHeader(headers, 'x-stainless-timeout') === undefined &&
+            options.timeout) {
+            reqHeaders['x-stainless-timeout'] = String(options.timeout);
+        }
+        this.validateHeaders(reqHeaders, headers);
+        return reqHeaders;
+    }
+    /**
+     * Used as a callback for mutating the given `FinalRequestOptions` object.
+     */
+    async prepareOptions(options) { }
+    /**
+     * Used as a callback for mutating the given `RequestInit` object.
+     *
+     * This is useful for cases where you want to add certain headers based off of
+     * the request properties, e.g. `method` or `url`.
+     */
+    async prepareRequest(request, { url, options }) { }
+    parseHeaders(headers) {
+        return (!headers ? {}
+            : Symbol.iterator in headers ?
+                Object.fromEntries(Array.from(headers).map((header) => [...header]))
+                : { ...headers });
+    }
+    makeStatusError(status, error, message, headers) {
+        return APIError.generate(status, error, message, headers);
+    }
+    request(options, remainingRetries = null) {
+        return new APIPromise(this.makeRequest(options, remainingRetries));
+    }
+    async makeRequest(optionsInput, retriesRemaining) {
+        const options = await optionsInput;
+        const maxRetries = options.maxRetries ?? this.maxRetries;
+        if (retriesRemaining == null) {
+            retriesRemaining = maxRetries;
+        }
+        await this.prepareOptions(options);
+        const { req, url, timeout } = this.buildRequest(options, { retryCount: maxRetries - retriesRemaining });
+        await this.prepareRequest(req, { url, options });
+        debug('request', url, options, req.headers);
+        if (options.signal?.aborted) {
+            throw new APIUserAbortError();
+        }
+        const controller = new AbortController();
+        const response = await this.fetchWithTimeout(url, req, timeout, controller).catch(castToError);
+        if (response instanceof Error) {
+            if (options.signal?.aborted) {
+                throw new APIUserAbortError();
+            }
+            if (retriesRemaining) {
+                return this.retryRequest(options, retriesRemaining);
+            }
+            if (response.name === 'AbortError') {
+                throw new APIConnectionTimeoutError();
+            }
+            throw new APIConnectionError({ cause: response });
+        }
+        const responseHeaders = createResponseHeaders(response.headers);
+        if (!response.ok) {
+            if (retriesRemaining && this.shouldRetry(response)) {
+                const retryMessage = `retrying, ${retriesRemaining} attempts remaining`;
+                debug(`response (error; ${retryMessage})`, response.status, url, responseHeaders);
+                return this.retryRequest(options, retriesRemaining, responseHeaders);
+            }
+            const errText = await response.text().catch((e) => castToError(e).message);
+            const errJSON = safeJSON(errText);
+            const errMessage = errJSON ? undefined : errText;
+            const retryMessage = retriesRemaining ? `(error; no more retries left)` : `(error; not retryable)`;
+            debug(`response (error; ${retryMessage})`, response.status, url, responseHeaders, errMessage);
+            const err = this.makeStatusError(response.status, errJSON, errMessage, responseHeaders);
+            throw err;
+        }
+        return { response, options, controller };
+    }
+    requestAPIList(Page, options) {
+        const request = this.makeRequest(options, null);
+        return new PagePromise(this, request, Page);
+    }
+    buildURL(path, query) {
+        const url = isAbsoluteURL(path) ?
+            new URL(path)
+            : new URL(this.baseURL + (this.baseURL.endsWith('/') && path.startsWith('/') ? path.slice(1) : path));
+        const defaultQuery = this.defaultQuery();
+        if (!isEmptyObj(defaultQuery)) {
+            query = { ...defaultQuery, ...query };
+        }
+        if (typeof query === 'object' && query && !Array.isArray(query)) {
+            url.search = this.stringifyQuery(query);
+        }
+        return url.toString();
+    }
+    stringifyQuery(query) {
+        return Object.entries(query)
+            .filter(([_, value]) => typeof value !== 'undefined')
+            .map(([key, value]) => {
+            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+                return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+            }
+            if (value === null) {
+                return `${encodeURIComponent(key)}=`;
+            }
+            throw new OpenAIError(`Cannot stringify type ${typeof value}; Expected string, number, boolean, or null. If you need to pass nested query parameters, you can manually encode them, e.g. { query: { 'foo[key1]': value1, 'foo[key2]': value2 } }, and please open a GitHub issue requesting better support for your use case.`);
+        })
+            .join('&');
+    }
+    async fetchWithTimeout(url, init, ms, controller) {
+        const { signal, ...options } = init || {};
+        if (signal)
+            signal.addEventListener('abort', () => controller.abort());
+        const timeout = setTimeout(() => controller.abort(), ms);
+        const fetchOptions = {
+            signal: controller.signal,
+            ...options,
+        };
+        if (fetchOptions.method) {
+            // Custom methods like 'patch' need to be uppercased
+            // See https://github.com/nodejs/undici/issues/2294
+            fetchOptions.method = fetchOptions.method.toUpperCase();
+        }
+        return (
+        // use undefined this binding; fetch errors if bound to something else in browser/cloudflare
+        this.fetch.call(undefined, url, fetchOptions).finally(() => {
+            clearTimeout(timeout);
+        }));
+    }
+    shouldRetry(response) {
+        // Note this is not a standard header.
+        const shouldRetryHeader = response.headers.get('x-should-retry');
+        // If the server explicitly says whether or not to retry, obey.
+        if (shouldRetryHeader === 'true')
+            return true;
+        if (shouldRetryHeader === 'false')
+            return false;
+        // Retry on request timeouts.
+        if (response.status === 408)
+            return true;
+        // Retry on lock timeouts.
+        if (response.status === 409)
+            return true;
+        // Retry on rate limits.
+        if (response.status === 429)
+            return true;
+        // Retry internal errors.
+        if (response.status >= 500)
+            return true;
+        return false;
+    }
+    async retryRequest(options, retriesRemaining, responseHeaders) {
+        let timeoutMillis;
+        // Note the `retry-after-ms` header may not be standard, but is a good idea and we'd like proactive support for it.
+        const retryAfterMillisHeader = responseHeaders?.['retry-after-ms'];
+        if (retryAfterMillisHeader) {
+            const timeoutMs = parseFloat(retryAfterMillisHeader);
+            if (!Number.isNaN(timeoutMs)) {
+                timeoutMillis = timeoutMs;
+            }
+        }
+        // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
+        const retryAfterHeader = responseHeaders?.['retry-after'];
+        if (retryAfterHeader && !timeoutMillis) {
+            const timeoutSeconds = parseFloat(retryAfterHeader);
+            if (!Number.isNaN(timeoutSeconds)) {
+                timeoutMillis = timeoutSeconds * 1000;
+            }
+            else {
+                timeoutMillis = Date.parse(retryAfterHeader) - Date.now();
+            }
+        }
+        // If the API asks us to wait a certain amount of time (and it's a reasonable amount),
+        // just do what it says, but otherwise calculate a default
+        if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000)) {
+            const maxRetries = options.maxRetries ?? this.maxRetries;
+            timeoutMillis = this.calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries);
+        }
+        await sleep$1(timeoutMillis);
+        return this.makeRequest(options, retriesRemaining - 1);
+    }
+    calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries) {
+        const initialRetryDelay = 0.5;
+        const maxRetryDelay = 8.0;
+        const numRetries = maxRetries - retriesRemaining;
+        // Apply exponential backoff, but not more than the max.
+        const sleepSeconds = Math.min(initialRetryDelay * Math.pow(2, numRetries), maxRetryDelay);
+        // Apply some jitter, take up to at most 25 percent of the retry time.
+        const jitter = 1 - Math.random() * 0.25;
+        return sleepSeconds * jitter * 1000;
+    }
+    getUserAgent() {
+        return `${this.constructor.name}/JS ${VERSION}`;
+    }
+}
+class AbstractPage {
+    constructor(client, response, body, options) {
+        _AbstractPage_client.set(this, void 0);
+        __classPrivateFieldSet$4(this, _AbstractPage_client, client, "f");
+        this.options = options;
+        this.response = response;
+        this.body = body;
+    }
+    hasNextPage() {
+        const items = this.getPaginatedItems();
+        if (!items.length)
+            return false;
+        return this.nextPageInfo() != null;
+    }
+    async getNextPage() {
+        const nextInfo = this.nextPageInfo();
+        if (!nextInfo) {
+            throw new OpenAIError('No next page expected; please check `.hasNextPage()` before calling `.getNextPage()`.');
+        }
+        const nextOptions = { ...this.options };
+        if ('params' in nextInfo && typeof nextOptions.query === 'object') {
+            nextOptions.query = { ...nextOptions.query, ...nextInfo.params };
+        }
+        else if ('url' in nextInfo) {
+            const params = [...Object.entries(nextOptions.query || {}), ...nextInfo.url.searchParams.entries()];
+            for (const [key, value] of params) {
+                nextInfo.url.searchParams.set(key, value);
+            }
+            nextOptions.query = undefined;
+            nextOptions.path = nextInfo.url.toString();
+        }
+        return await __classPrivateFieldGet$5(this, _AbstractPage_client, "f").requestAPIList(this.constructor, nextOptions);
+    }
+    async *iterPages() {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        let page = this;
+        yield page;
+        while (page.hasNextPage()) {
+            page = await page.getNextPage();
+            yield page;
+        }
+    }
+    async *[(_AbstractPage_client = new WeakMap(), Symbol.asyncIterator)]() {
+        for await (const page of this.iterPages()) {
+            for (const item of page.getPaginatedItems()) {
+                yield item;
+            }
+        }
+    }
+}
+/**
+ * This subclass of Promise will resolve to an instantiated Page once the request completes.
+ *
+ * It also implements AsyncIterable to allow auto-paginating iteration on an unawaited list call, eg:
+ *
+ *    for await (const item of client.items.list()) {
+ *      console.log(item)
+ *    }
+ */
+class PagePromise extends APIPromise {
+    constructor(client, request, Page) {
+        super(request, async (props) => new Page(client, props.response, await defaultParseResponse(props), props.options));
+    }
+    /**
+     * Allow auto-paginating iteration on an unawaited list call, eg:
+     *
+     *    for await (const item of client.items.list()) {
+     *      console.log(item)
+     *    }
+     */
+    async *[Symbol.asyncIterator]() {
+        const page = await this;
+        for await (const item of page) {
+            yield item;
+        }
+    }
+}
+const createResponseHeaders = (headers) => {
+    return new Proxy(Object.fromEntries(
+    // @ts-ignore
+    headers.entries()), {
+        get(target, name) {
+            const key = name.toString();
+            return target[key.toLowerCase()] || target[key];
+        },
+    });
+};
+// This is required so that we can determine if a given object matches the RequestOptions
+// type at runtime. While this requires duplication, it is enforced by the TypeScript
+// compiler such that any missing / extraneous keys will cause an error.
+const requestOptionsKeys = {
+    method: true,
+    path: true,
+    query: true,
+    body: true,
+    headers: true,
+    maxRetries: true,
+    stream: true,
+    timeout: true,
+    httpAgent: true,
+    signal: true,
+    idempotencyKey: true,
+    __metadata: true,
+    __binaryRequest: true,
+    __binaryResponse: true,
+    __streamClass: true,
+};
+const isRequestOptions = (obj) => {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        !isEmptyObj(obj) &&
+        Object.keys(obj).every((k) => hasOwn(requestOptionsKeys, k)));
+};
+const getPlatformProperties = () => {
+    if (typeof Deno !== 'undefined' && Deno.build != null) {
+        return {
+            'X-Stainless-Lang': 'js',
+            'X-Stainless-Package-Version': VERSION,
+            'X-Stainless-OS': normalizePlatform(Deno.build.os),
+            'X-Stainless-Arch': normalizeArch(Deno.build.arch),
+            'X-Stainless-Runtime': 'deno',
+            'X-Stainless-Runtime-Version': typeof Deno.version === 'string' ? Deno.version : Deno.version?.deno ?? 'unknown',
+        };
+    }
+    if (typeof EdgeRuntime !== 'undefined') {
+        return {
+            'X-Stainless-Lang': 'js',
+            'X-Stainless-Package-Version': VERSION,
+            'X-Stainless-OS': 'Unknown',
+            'X-Stainless-Arch': `other:${EdgeRuntime}`,
+            'X-Stainless-Runtime': 'edge',
+            'X-Stainless-Runtime-Version': process.version,
+        };
+    }
+    // Check if Node.js
+    if (Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]') {
+        return {
+            'X-Stainless-Lang': 'js',
+            'X-Stainless-Package-Version': VERSION,
+            'X-Stainless-OS': normalizePlatform(process.platform),
+            'X-Stainless-Arch': normalizeArch(process.arch),
+            'X-Stainless-Runtime': 'node',
+            'X-Stainless-Runtime-Version': process.version,
+        };
+    }
+    const browserInfo = getBrowserInfo();
+    if (browserInfo) {
+        return {
+            'X-Stainless-Lang': 'js',
+            'X-Stainless-Package-Version': VERSION,
+            'X-Stainless-OS': 'Unknown',
+            'X-Stainless-Arch': 'unknown',
+            'X-Stainless-Runtime': `browser:${browserInfo.browser}`,
+            'X-Stainless-Runtime-Version': browserInfo.version,
+        };
+    }
+    // TODO add support for Cloudflare workers, etc.
+    return {
+        'X-Stainless-Lang': 'js',
+        'X-Stainless-Package-Version': VERSION,
+        'X-Stainless-OS': 'Unknown',
+        'X-Stainless-Arch': 'unknown',
+        'X-Stainless-Runtime': 'unknown',
+        'X-Stainless-Runtime-Version': 'unknown',
+    };
+};
+// Note: modified from https://github.com/JS-DevTools/host-environment/blob/b1ab79ecde37db5d6e163c050e54fe7d287d7c92/src/isomorphic.browser.ts
+function getBrowserInfo() {
+    if (typeof navigator === 'undefined' || !navigator) {
+        return null;
+    }
+    // NOTE: The order matters here!
+    const browserPatterns = [
+        { key: 'edge', pattern: /Edge(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+        { key: 'ie', pattern: /MSIE(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+        { key: 'ie', pattern: /Trident(?:.*rv\:(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+        { key: 'chrome', pattern: /Chrome(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+        { key: 'firefox', pattern: /Firefox(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
+        { key: 'safari', pattern: /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/ },
+    ];
+    // Find the FIRST matching browser
+    for (const { key, pattern } of browserPatterns) {
+        const match = pattern.exec(navigator.userAgent);
+        if (match) {
+            const major = match[1] || 0;
+            const minor = match[2] || 0;
+            const patch = match[3] || 0;
+            return { browser: key, version: `${major}.${minor}.${patch}` };
+        }
+    }
+    return null;
+}
+const normalizeArch = (arch) => {
+    // Node docs:
+    // - https://nodejs.org/api/process.html#processarch
+    // Deno docs:
+    // - https://doc.deno.land/deno/stable/~/Deno.build
+    if (arch === 'x32')
+        return 'x32';
+    if (arch === 'x86_64' || arch === 'x64')
+        return 'x64';
+    if (arch === 'arm')
+        return 'arm';
+    if (arch === 'aarch64' || arch === 'arm64')
+        return 'arm64';
+    if (arch)
+        return `other:${arch}`;
+    return 'unknown';
+};
+const normalizePlatform = (platform) => {
+    // Node platforms:
+    // - https://nodejs.org/api/process.html#processplatform
+    // Deno platforms:
+    // - https://doc.deno.land/deno/stable/~/Deno.build
+    // - https://github.com/denoland/deno/issues/14799
+    platform = platform.toLowerCase();
+    // NOTE: this iOS check is untested and may not work
+    // Node does not work natively on IOS, there is a fork at
+    // https://github.com/nodejs-mobile/nodejs-mobile
+    // however it is unknown at the time of writing how to detect if it is running
+    if (platform.includes('ios'))
+        return 'iOS';
+    if (platform === 'android')
+        return 'Android';
+    if (platform === 'darwin')
+        return 'MacOS';
+    if (platform === 'win32')
+        return 'Windows';
+    if (platform === 'freebsd')
+        return 'FreeBSD';
+    if (platform === 'openbsd')
+        return 'OpenBSD';
+    if (platform === 'linux')
+        return 'Linux';
+    if (platform)
+        return `Other:${platform}`;
+    return 'Unknown';
+};
+let _platformHeaders;
+const getPlatformHeaders = () => {
+    return (_platformHeaders ?? (_platformHeaders = getPlatformProperties()));
+};
+const safeJSON = (text) => {
+    try {
+        return JSON.parse(text);
+    }
+    catch (err) {
+        return undefined;
+    }
+};
+// https://url.spec.whatwg.org/#url-scheme-string
+const startsWithSchemeRegexp = /^[a-z][a-z0-9+.-]*:/i;
+const isAbsoluteURL = (url) => {
+    return startsWithSchemeRegexp.test(url);
+};
+const sleep$1 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const validatePositiveInteger = (name, n) => {
+    if (typeof n !== 'number' || !Number.isInteger(n)) {
+        throw new OpenAIError(`${name} must be an integer`);
+    }
+    if (n < 0) {
+        throw new OpenAIError(`${name} must be a positive integer`);
+    }
+    return n;
+};
+const castToError = (err) => {
+    if (err instanceof Error)
+        return err;
+    if (typeof err === 'object' && err !== null) {
+        try {
+            return new Error(JSON.stringify(err));
+        }
+        catch { }
+    }
+    return new Error(err);
+};
+/**
+ * Read an environment variable.
+ *
+ * Trims beginning and trailing whitespace.
+ *
+ * Will return undefined if the environment variable doesn't exist or cannot be accessed.
+ */
+const readEnv = (env) => {
+    if (typeof process !== 'undefined') {
+        return process.env?.[env]?.trim() ?? undefined;
+    }
+    if (typeof Deno !== 'undefined') {
+        return Deno.env?.get?.(env)?.trim();
+    }
+    return undefined;
+};
+// https://stackoverflow.com/a/34491287
+function isEmptyObj(obj) {
+    if (!obj)
+        return true;
+    for (const _k in obj)
+        return false;
+    return true;
+}
+// https://eslint.org/docs/latest/rules/no-prototype-builtins
+function hasOwn(obj, key) {
+    return Object.prototype.hasOwnProperty.call(obj, key);
+}
+/**
+ * Copies headers from "newHeaders" onto "targetHeaders",
+ * using lower-case for all properties,
+ * ignoring any keys with undefined values,
+ * and deleting any keys with null values.
+ */
+function applyHeadersMut(targetHeaders, newHeaders) {
+    for (const k in newHeaders) {
+        if (!hasOwn(newHeaders, k))
+            continue;
+        const lowerKey = k.toLowerCase();
+        if (!lowerKey)
+            continue;
+        const val = newHeaders[k];
+        if (val === null) {
+            delete targetHeaders[lowerKey];
+        }
+        else if (val !== undefined) {
+            targetHeaders[lowerKey] = val;
+        }
+    }
+}
+const SENSITIVE_HEADERS = new Set(['authorization', 'api-key']);
+function debug(action, ...args) {
+    if (typeof process !== 'undefined' && process?.env?.['DEBUG'] === 'true') {
+        const modifiedArgs = args.map((arg) => {
+            if (!arg) {
+                return arg;
+            }
+            // Check for sensitive headers in request body 'headers' object
+            if (arg['headers']) {
+                // clone so we don't mutate
+                const modifiedArg = { ...arg, headers: { ...arg['headers'] } };
+                for (const header in arg['headers']) {
+                    if (SENSITIVE_HEADERS.has(header.toLowerCase())) {
+                        modifiedArg['headers'][header] = 'REDACTED';
+                    }
+                }
+                return modifiedArg;
+            }
+            let modifiedArg = null;
+            // Check for sensitive headers in headers object
+            for (const header in arg) {
+                if (SENSITIVE_HEADERS.has(header.toLowerCase())) {
+                    // avoid making a copy until we need to
+                    modifiedArg ?? (modifiedArg = { ...arg });
+                    modifiedArg[header] = 'REDACTED';
+                }
+            }
+            return modifiedArg ?? arg;
+        });
+        console.log(`OpenAI:DEBUG:${action}`, ...modifiedArgs);
+    }
+}
+/**
+ * https://stackoverflow.com/a/2117523
+ */
+const uuid4 = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+};
+const isRunningInBrowser = () => {
+    return (
+    // @ts-ignore
+    typeof window !== 'undefined' &&
+        // @ts-ignore
+        typeof window.document !== 'undefined' &&
+        // @ts-ignore
+        typeof navigator !== 'undefined');
+};
+const isHeadersProtocol = (headers) => {
+    return typeof headers?.get === 'function';
+};
+const getHeader = (headers, header) => {
+    const lowerCasedHeader = header.toLowerCase();
+    if (isHeadersProtocol(headers)) {
+        // to deal with the case where the header looks like Stainless-Event-Id
+        const intercapsHeader = header[0]?.toUpperCase() +
+            header.substring(1).replace(/([^\w])(\w)/g, (_m, g1, g2) => g1 + g2.toUpperCase());
+        for (const key of [header, lowerCasedHeader, header.toUpperCase(), intercapsHeader]) {
+            const value = headers.get(key);
+            if (value) {
+                return value;
+            }
+        }
+    }
+    for (const [key, value] of Object.entries(headers)) {
+        if (key.toLowerCase() === lowerCasedHeader) {
+            if (Array.isArray(value)) {
+                if (value.length <= 1)
+                    return value[0];
+                console.warn(`Received ${value.length} entries for the ${header} header, using the first entry.`);
+                return value[0];
+            }
+            return value;
+        }
+    }
+    return undefined;
+};
+function isObj(obj) {
+    return obj != null && typeof obj === 'object' && !Array.isArray(obj);
+}
+
 const apiKey$2 = process.env.ANTHROPIC_API_KEY || "";
 class ClaudeClient {
     client;
     model;
     options;
+    fullModelName;
+    retries;
     constructor(modelName, options) {
+        this.fullModelName = modelName;
         this.options = options;
         this.client = new Anthropic({
             apiKey: apiKey$2
         });
         this.model = getModelName(modelName);
+        this.retries = options.retries;
         if (this.options.debug) {
             coreExports.debug("Claude client initialized");
             coreExports.debug(`Using model: ${this.model}`);
         }
     }
+    getFullModelName() {
+        return this.fullModelName;
+    }
     async create(ctx, prompts) {
         try {
-            // TODO prompt caching
             // Call Claude API
             const result = await this.client.messages.create({
                 model: this.model,
@@ -39752,16 +41433,19 @@ class ClaudeClient {
                 temperature: 0.1
             });
             const res = result.content[0];
+            // reset retries
+            this.retries = this.options.retries;
             return res.type === "text" ? res.text : "";
         }
         catch (error) {
             coreExports.warning(`Failed to review code for : ${error instanceof Error ? error.message : String(error)}`);
             // Retry logic
-            if (this.options.retries > 0) {
-                this.options.retries--;
+            if (this.retries > 0) {
+                this.retries--;
+                await sleep$1(1000); // wait for 1 second before retrying
                 return this.create(ctx, prompts);
             }
-            return "Failed to review this file due to an API error.";
+            throw new Error("Failed to review this file due to an API error.");
         }
     }
 }
@@ -41279,14 +42963,22 @@ class GoogleGenerativeAI {
     }
 }
 
+const sleep = (ms) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
 const apiKey$1 = process.env.GEMINI_API_KEY || "";
 class GeminiClient {
     client;
     model;
     options;
+    fullModelName;
+    retries;
     constructor(modelName, options) {
+        this.fullModelName = modelName;
         this.options = options;
         this.client = new GoogleGenerativeAI(apiKey$1);
+        this.retries = options.retries;
         const geminiModel = getModelName(modelName);
         this.model = this.client.getGenerativeModel({
             systemInstruction: {
@@ -41298,6 +42990,9 @@ class GeminiClient {
             coreExports.debug("Gemini client initialized");
             coreExports.debug(`Using model: ${modelName}`);
         }
+    }
+    getFullModelName() {
+        return this.fullModelName;
     }
     async create(ctx, prompts) {
         try {
@@ -41317,16 +43012,19 @@ class GeminiClient {
                     // maxOutputTokens: 2000,
                 }
             });
+            // reset retries
+            this.retries = this.options.retries;
             return result.response.text();
         }
         catch (error) {
             coreExports.warning(`Failed to review code for: ${error instanceof Error ? error.message : String(error)}`);
             // Retry logic
-            if (this.options.retries > 0) {
-                this.options.retries--;
+            if (this.retries > 0) {
+                this.retries--;
+                await sleep(1000); // wait for 1 second before retrying
                 return this.create(ctx, prompts);
             }
-            return "Failed to review this file due to an API error.";
+            throw new Error("Failed to review this file due to an API error.");
         }
     }
 }
@@ -41697,1681 +43395,6 @@ function stringify(object, opts = {}) {
         }
     }
     return joined.length > 0 ? prefix + joined : '';
-}
-
-const VERSION = '4.87.3'; // x-release-please-version
-
-let auto = false;
-let kind = undefined;
-let fetch$1 = undefined;
-let FormData$1 = undefined;
-let File$1 = undefined;
-let ReadableStream$1 = undefined;
-let getMultipartRequestOptions = undefined;
-let getDefaultAgent = undefined;
-let fileFromPath = undefined;
-let isFsReadStream = undefined;
-function setShims(shims, options = { auto: false }) {
-    if (auto) {
-        throw new Error(`you must \`import 'openai/shims/${shims.kind}'\` before importing anything else from openai`);
-    }
-    if (kind) {
-        throw new Error(`can't \`import 'openai/shims/${shims.kind}'\` after \`import 'openai/shims/${kind}'\``);
-    }
-    auto = options.auto;
-    kind = shims.kind;
-    fetch$1 = shims.fetch;
-    FormData$1 = shims.FormData;
-    File$1 = shims.File;
-    ReadableStream$1 = shims.ReadableStream;
-    getMultipartRequestOptions = shims.getMultipartRequestOptions;
-    getDefaultAgent = shims.getDefaultAgent;
-    fileFromPath = shims.fileFromPath;
-    isFsReadStream = shims.isFsReadStream;
-}
-
-/**
- * Disclaimer: modules in _shims aren't intended to be imported by SDK users.
- */
-class MultipartBody {
-    constructor(body) {
-        this.body = body;
-    }
-    get [Symbol.toStringTag]() {
-        return 'MultipartBody';
-    }
-}
-
-function getRuntime({ manuallyImported } = {}) {
-    const recommendation = manuallyImported ?
-        `You may need to use polyfills`
-        : `Add one of these imports before your first \`import … from 'openai'\`:
-- \`import 'openai/shims/node'\` (if you're running on Node)
-- \`import 'openai/shims/web'\` (otherwise)
-`;
-    let _fetch, _Request, _Response, _Headers;
-    try {
-        // @ts-ignore
-        _fetch = fetch;
-        // @ts-ignore
-        _Request = Request;
-        // @ts-ignore
-        _Response = Response;
-        // @ts-ignore
-        _Headers = Headers;
-    }
-    catch (error) {
-        throw new Error(`this environment is missing the following Web Fetch API type: ${error.message}. ${recommendation}`);
-    }
-    return {
-        kind: 'web',
-        fetch: _fetch,
-        Request: _Request,
-        Response: _Response,
-        Headers: _Headers,
-        FormData: 
-        // @ts-ignore
-        typeof FormData !== 'undefined' ? FormData : (class FormData {
-            // @ts-ignore
-            constructor() {
-                throw new Error(`file uploads aren't supported in this environment yet as 'FormData' is undefined. ${recommendation}`);
-            }
-        }),
-        Blob: typeof Blob !== 'undefined' ? Blob : (class Blob {
-            constructor() {
-                throw new Error(`file uploads aren't supported in this environment yet as 'Blob' is undefined. ${recommendation}`);
-            }
-        }),
-        File: 
-        // @ts-ignore
-        typeof File !== 'undefined' ? File : (class File {
-            // @ts-ignore
-            constructor() {
-                throw new Error(`file uploads aren't supported in this environment yet as 'File' is undefined. ${recommendation}`);
-            }
-        }),
-        ReadableStream: 
-        // @ts-ignore
-        typeof ReadableStream !== 'undefined' ? ReadableStream : (class ReadableStream {
-            // @ts-ignore
-            constructor() {
-                throw new Error(`streaming isn't supported in this environment yet as 'ReadableStream' is undefined. ${recommendation}`);
-            }
-        }),
-        getMultipartRequestOptions: async (
-        // @ts-ignore
-        form, opts) => ({
-            ...opts,
-            body: new MultipartBody(form),
-        }),
-        getDefaultAgent: (url) => undefined,
-        fileFromPath: () => {
-            throw new Error('The `fileFromPath` function is only supported in Node. See the README for more details: https://www.github.com/openai/openai-node#file-uploads');
-        },
-        isFsReadStream: (value) => false,
-    };
-}
-
-/**
- * Disclaimer: modules in _shims aren't intended to be imported by SDK users.
- */
-if (!kind) setShims(getRuntime(), { auto: true });
-
-// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-class OpenAIError extends Error {
-}
-class APIError extends OpenAIError {
-    constructor(status, error, message, headers) {
-        super(`${APIError.makeMessage(status, error, message)}`);
-        this.status = status;
-        this.headers = headers;
-        this.request_id = headers?.['x-request-id'];
-        this.error = error;
-        const data = error;
-        this.code = data?.['code'];
-        this.param = data?.['param'];
-        this.type = data?.['type'];
-    }
-    static makeMessage(status, error, message) {
-        const msg = error?.message ?
-            typeof error.message === 'string' ?
-                error.message
-                : JSON.stringify(error.message)
-            : error ? JSON.stringify(error)
-                : message;
-        if (status && msg) {
-            return `${status} ${msg}`;
-        }
-        if (status) {
-            return `${status} status code (no body)`;
-        }
-        if (msg) {
-            return msg;
-        }
-        return '(no status code or body)';
-    }
-    static generate(status, errorResponse, message, headers) {
-        if (!status || !headers) {
-            return new APIConnectionError({ message, cause: castToError(errorResponse) });
-        }
-        const error = errorResponse?.['error'];
-        if (status === 400) {
-            return new BadRequestError(status, error, message, headers);
-        }
-        if (status === 401) {
-            return new AuthenticationError(status, error, message, headers);
-        }
-        if (status === 403) {
-            return new PermissionDeniedError(status, error, message, headers);
-        }
-        if (status === 404) {
-            return new NotFoundError(status, error, message, headers);
-        }
-        if (status === 409) {
-            return new ConflictError(status, error, message, headers);
-        }
-        if (status === 422) {
-            return new UnprocessableEntityError(status, error, message, headers);
-        }
-        if (status === 429) {
-            return new RateLimitError(status, error, message, headers);
-        }
-        if (status >= 500) {
-            return new InternalServerError(status, error, message, headers);
-        }
-        return new APIError(status, error, message, headers);
-    }
-}
-class APIUserAbortError extends APIError {
-    constructor({ message } = {}) {
-        super(undefined, undefined, message || 'Request was aborted.', undefined);
-    }
-}
-class APIConnectionError extends APIError {
-    constructor({ message, cause }) {
-        super(undefined, undefined, message || 'Connection error.', undefined);
-        // in some environments the 'cause' property is already declared
-        // @ts-ignore
-        if (cause)
-            this.cause = cause;
-    }
-}
-class APIConnectionTimeoutError extends APIConnectionError {
-    constructor({ message } = {}) {
-        super({ message: message ?? 'Request timed out.' });
-    }
-}
-class BadRequestError extends APIError {
-}
-class AuthenticationError extends APIError {
-}
-class PermissionDeniedError extends APIError {
-}
-class NotFoundError extends APIError {
-}
-class ConflictError extends APIError {
-}
-class UnprocessableEntityError extends APIError {
-}
-class RateLimitError extends APIError {
-}
-class InternalServerError extends APIError {
-}
-class LengthFinishReasonError extends OpenAIError {
-    constructor() {
-        super(`Could not parse response content as the length limit was reached`);
-    }
-}
-class ContentFilterFinishReasonError extends OpenAIError {
-    constructor() {
-        super(`Could not parse response content as the request was rejected by the content filter`);
-    }
-}
-
-var __classPrivateFieldSet$5 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-};
-var __classPrivateFieldGet$6 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var _LineDecoder_carriageReturnIndex;
-/**
- * A re-implementation of httpx's `LineDecoder` in Python that handles incrementally
- * reading lines from text.
- *
- * https://github.com/encode/httpx/blob/920333ea98118e9cf617f246905d7b202510941c/httpx/_decoders.py#L258
- */
-class LineDecoder {
-    constructor() {
-        _LineDecoder_carriageReturnIndex.set(this, void 0);
-        this.buffer = new Uint8Array();
-        __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, null, "f");
-    }
-    decode(chunk) {
-        if (chunk == null) {
-            return [];
-        }
-        const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk)
-            : typeof chunk === 'string' ? new TextEncoder().encode(chunk)
-                : chunk;
-        let newData = new Uint8Array(this.buffer.length + binaryChunk.length);
-        newData.set(this.buffer);
-        newData.set(binaryChunk, this.buffer.length);
-        this.buffer = newData;
-        const lines = [];
-        let patternIndex;
-        while ((patternIndex = findNewlineIndex(this.buffer, __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f"))) != null) {
-            if (patternIndex.carriage && __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") == null) {
-                // skip until we either get a corresponding `\n`, a new `\r` or nothing
-                __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, patternIndex.index, "f");
-                continue;
-            }
-            // we got double \r or \rtext\n
-            if (__classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") != null &&
-                (patternIndex.index !== __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") + 1 || patternIndex.carriage)) {
-                lines.push(this.decodeText(this.buffer.slice(0, __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") - 1)));
-                this.buffer = this.buffer.slice(__classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f"));
-                __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, null, "f");
-                continue;
-            }
-            const endIndex = __classPrivateFieldGet$6(this, _LineDecoder_carriageReturnIndex, "f") !== null ? patternIndex.preceding - 1 : patternIndex.preceding;
-            const line = this.decodeText(this.buffer.slice(0, endIndex));
-            lines.push(line);
-            this.buffer = this.buffer.slice(patternIndex.index);
-            __classPrivateFieldSet$5(this, _LineDecoder_carriageReturnIndex, null, "f");
-        }
-        return lines;
-    }
-    decodeText(bytes) {
-        if (bytes == null)
-            return '';
-        if (typeof bytes === 'string')
-            return bytes;
-        // Node:
-        if (typeof Buffer !== 'undefined') {
-            if (bytes instanceof Buffer) {
-                return bytes.toString();
-            }
-            if (bytes instanceof Uint8Array) {
-                return Buffer.from(bytes).toString();
-            }
-            throw new OpenAIError(`Unexpected: received non-Uint8Array (${bytes.constructor.name}) stream chunk in an environment with a global "Buffer" defined, which this library assumes to be Node. Please report this error.`);
-        }
-        // Browser
-        if (typeof TextDecoder !== 'undefined') {
-            if (bytes instanceof Uint8Array || bytes instanceof ArrayBuffer) {
-                this.textDecoder ?? (this.textDecoder = new TextDecoder('utf8'));
-                return this.textDecoder.decode(bytes);
-            }
-            throw new OpenAIError(`Unexpected: received non-Uint8Array/ArrayBuffer (${bytes.constructor.name}) in a web platform. Please report this error.`);
-        }
-        throw new OpenAIError(`Unexpected: neither Buffer nor TextDecoder are available as globals. Please report this error.`);
-    }
-    flush() {
-        if (!this.buffer.length) {
-            return [];
-        }
-        return this.decode('\n');
-    }
-}
-_LineDecoder_carriageReturnIndex = new WeakMap();
-// prettier-ignore
-LineDecoder.NEWLINE_CHARS = new Set(['\n', '\r']);
-LineDecoder.NEWLINE_REGEXP = /\r\n|[\n\r]/g;
-/**
- * This function searches the buffer for the end patterns, (\r or \n)
- * and returns an object with the index preceding the matched newline and the
- * index after the newline char. `null` is returned if no new line is found.
- *
- * ```ts
- * findNewLineIndex('abc\ndef') -> { preceding: 2, index: 3 }
- * ```
- */
-function findNewlineIndex(buffer, startIndex) {
-    const newline = 0x0a; // \n
-    const carriage = 0x0d; // \r
-    for (let i = startIndex ?? 0; i < buffer.length; i++) {
-        if (buffer[i] === newline) {
-            return { preceding: i, index: i + 1, carriage: false };
-        }
-        if (buffer[i] === carriage) {
-            return { preceding: i, index: i + 1, carriage: true };
-        }
-    }
-    return null;
-}
-function findDoubleNewlineIndex(buffer) {
-    // This function searches the buffer for the end patterns (\r\r, \n\n, \r\n\r\n)
-    // and returns the index right after the first occurrence of any pattern,
-    // or -1 if none of the patterns are found.
-    const newline = 0x0a; // \n
-    const carriage = 0x0d; // \r
-    for (let i = 0; i < buffer.length - 1; i++) {
-        if (buffer[i] === newline && buffer[i + 1] === newline) {
-            // \n\n
-            return i + 2;
-        }
-        if (buffer[i] === carriage && buffer[i + 1] === carriage) {
-            // \r\r
-            return i + 2;
-        }
-        if (buffer[i] === carriage &&
-            buffer[i + 1] === newline &&
-            i + 3 < buffer.length &&
-            buffer[i + 2] === carriage &&
-            buffer[i + 3] === newline) {
-            // \r\n\r\n
-            return i + 4;
-        }
-    }
-    return -1;
-}
-
-/**
- * Most browsers don't yet have async iterable support for ReadableStream,
- * and Node has a very different way of reading bytes from its "ReadableStream".
- *
- * This polyfill was pulled from https://github.com/MattiasBuelens/web-streams-polyfill/pull/122#issuecomment-1627354490
- */
-function ReadableStreamToAsyncIterable(stream) {
-    if (stream[Symbol.asyncIterator])
-        return stream;
-    const reader = stream.getReader();
-    return {
-        async next() {
-            try {
-                const result = await reader.read();
-                if (result?.done)
-                    reader.releaseLock(); // release lock when stream becomes closed
-                return result;
-            }
-            catch (e) {
-                reader.releaseLock(); // release lock when stream becomes errored
-                throw e;
-            }
-        },
-        async return() {
-            const cancelPromise = reader.cancel();
-            reader.releaseLock();
-            await cancelPromise;
-            return { done: true, value: undefined };
-        },
-        [Symbol.asyncIterator]() {
-            return this;
-        },
-    };
-}
-
-class Stream {
-    constructor(iterator, controller) {
-        this.iterator = iterator;
-        this.controller = controller;
-    }
-    static fromSSEResponse(response, controller) {
-        let consumed = false;
-        async function* iterator() {
-            if (consumed) {
-                throw new Error('Cannot iterate over a consumed stream, use `.tee()` to split the stream.');
-            }
-            consumed = true;
-            let done = false;
-            try {
-                for await (const sse of _iterSSEMessages(response, controller)) {
-                    if (done)
-                        continue;
-                    if (sse.data.startsWith('[DONE]')) {
-                        done = true;
-                        continue;
-                    }
-                    if (sse.event === null || sse.event.startsWith('response.')) {
-                        let data;
-                        try {
-                            data = JSON.parse(sse.data);
-                        }
-                        catch (e) {
-                            console.error(`Could not parse message into JSON:`, sse.data);
-                            console.error(`From chunk:`, sse.raw);
-                            throw e;
-                        }
-                        if (data && data.error) {
-                            throw new APIError(undefined, data.error, undefined, undefined);
-                        }
-                        yield data;
-                    }
-                    else {
-                        let data;
-                        try {
-                            data = JSON.parse(sse.data);
-                        }
-                        catch (e) {
-                            console.error(`Could not parse message into JSON:`, sse.data);
-                            console.error(`From chunk:`, sse.raw);
-                            throw e;
-                        }
-                        // TODO: Is this where the error should be thrown?
-                        if (sse.event == 'error') {
-                            throw new APIError(undefined, data.error, data.message, undefined);
-                        }
-                        yield { event: sse.event, data: data };
-                    }
-                }
-                done = true;
-            }
-            catch (e) {
-                // If the user calls `stream.controller.abort()`, we should exit without throwing.
-                if (e instanceof Error && e.name === 'AbortError')
-                    return;
-                throw e;
-            }
-            finally {
-                // If the user `break`s, abort the ongoing request.
-                if (!done)
-                    controller.abort();
-            }
-        }
-        return new Stream(iterator, controller);
-    }
-    /**
-     * Generates a Stream from a newline-separated ReadableStream
-     * where each item is a JSON value.
-     */
-    static fromReadableStream(readableStream, controller) {
-        let consumed = false;
-        async function* iterLines() {
-            const lineDecoder = new LineDecoder();
-            const iter = ReadableStreamToAsyncIterable(readableStream);
-            for await (const chunk of iter) {
-                for (const line of lineDecoder.decode(chunk)) {
-                    yield line;
-                }
-            }
-            for (const line of lineDecoder.flush()) {
-                yield line;
-            }
-        }
-        async function* iterator() {
-            if (consumed) {
-                throw new Error('Cannot iterate over a consumed stream, use `.tee()` to split the stream.');
-            }
-            consumed = true;
-            let done = false;
-            try {
-                for await (const line of iterLines()) {
-                    if (done)
-                        continue;
-                    if (line)
-                        yield JSON.parse(line);
-                }
-                done = true;
-            }
-            catch (e) {
-                // If the user calls `stream.controller.abort()`, we should exit without throwing.
-                if (e instanceof Error && e.name === 'AbortError')
-                    return;
-                throw e;
-            }
-            finally {
-                // If the user `break`s, abort the ongoing request.
-                if (!done)
-                    controller.abort();
-            }
-        }
-        return new Stream(iterator, controller);
-    }
-    [Symbol.asyncIterator]() {
-        return this.iterator();
-    }
-    /**
-     * Splits the stream into two streams which can be
-     * independently read from at different speeds.
-     */
-    tee() {
-        const left = [];
-        const right = [];
-        const iterator = this.iterator();
-        const teeIterator = (queue) => {
-            return {
-                next: () => {
-                    if (queue.length === 0) {
-                        const result = iterator.next();
-                        left.push(result);
-                        right.push(result);
-                    }
-                    return queue.shift();
-                },
-            };
-        };
-        return [
-            new Stream(() => teeIterator(left), this.controller),
-            new Stream(() => teeIterator(right), this.controller),
-        ];
-    }
-    /**
-     * Converts this stream to a newline-separated ReadableStream of
-     * JSON stringified values in the stream
-     * which can be turned back into a Stream with `Stream.fromReadableStream()`.
-     */
-    toReadableStream() {
-        const self = this;
-        let iter;
-        const encoder = new TextEncoder();
-        return new ReadableStream$1({
-            async start() {
-                iter = self[Symbol.asyncIterator]();
-            },
-            async pull(ctrl) {
-                try {
-                    const { value, done } = await iter.next();
-                    if (done)
-                        return ctrl.close();
-                    const bytes = encoder.encode(JSON.stringify(value) + '\n');
-                    ctrl.enqueue(bytes);
-                }
-                catch (err) {
-                    ctrl.error(err);
-                }
-            },
-            async cancel() {
-                await iter.return?.();
-            },
-        });
-    }
-}
-async function* _iterSSEMessages(response, controller) {
-    if (!response.body) {
-        controller.abort();
-        throw new OpenAIError(`Attempted to iterate over a response with no body`);
-    }
-    const sseDecoder = new SSEDecoder();
-    const lineDecoder = new LineDecoder();
-    const iter = ReadableStreamToAsyncIterable(response.body);
-    for await (const sseChunk of iterSSEChunks(iter)) {
-        for (const line of lineDecoder.decode(sseChunk)) {
-            const sse = sseDecoder.decode(line);
-            if (sse)
-                yield sse;
-        }
-    }
-    for (const line of lineDecoder.flush()) {
-        const sse = sseDecoder.decode(line);
-        if (sse)
-            yield sse;
-    }
-}
-/**
- * Given an async iterable iterator, iterates over it and yields full
- * SSE chunks, i.e. yields when a double new-line is encountered.
- */
-async function* iterSSEChunks(iterator) {
-    let data = new Uint8Array();
-    for await (const chunk of iterator) {
-        if (chunk == null) {
-            continue;
-        }
-        const binaryChunk = chunk instanceof ArrayBuffer ? new Uint8Array(chunk)
-            : typeof chunk === 'string' ? new TextEncoder().encode(chunk)
-                : chunk;
-        let newData = new Uint8Array(data.length + binaryChunk.length);
-        newData.set(data);
-        newData.set(binaryChunk, data.length);
-        data = newData;
-        let patternIndex;
-        while ((patternIndex = findDoubleNewlineIndex(data)) !== -1) {
-            yield data.slice(0, patternIndex);
-            data = data.slice(patternIndex);
-        }
-    }
-    if (data.length > 0) {
-        yield data;
-    }
-}
-class SSEDecoder {
-    constructor() {
-        this.event = null;
-        this.data = [];
-        this.chunks = [];
-    }
-    decode(line) {
-        if (line.endsWith('\r')) {
-            line = line.substring(0, line.length - 1);
-        }
-        if (!line) {
-            // empty line and we didn't previously encounter any messages
-            if (!this.event && !this.data.length)
-                return null;
-            const sse = {
-                event: this.event,
-                data: this.data.join('\n'),
-                raw: this.chunks,
-            };
-            this.event = null;
-            this.data = [];
-            this.chunks = [];
-            return sse;
-        }
-        this.chunks.push(line);
-        if (line.startsWith(':')) {
-            return null;
-        }
-        let [fieldname, _, value] = partition(line, ':');
-        if (value.startsWith(' ')) {
-            value = value.substring(1);
-        }
-        if (fieldname === 'event') {
-            this.event = value;
-        }
-        else if (fieldname === 'data') {
-            this.data.push(value);
-        }
-        return null;
-    }
-}
-function partition(str, delimiter) {
-    const index = str.indexOf(delimiter);
-    if (index !== -1) {
-        return [str.substring(0, index), delimiter, str.substring(index + delimiter.length)];
-    }
-    return [str, '', ''];
-}
-
-const isResponseLike = (value) => value != null &&
-    typeof value === 'object' &&
-    typeof value.url === 'string' &&
-    typeof value.blob === 'function';
-const isFileLike = (value) => value != null &&
-    typeof value === 'object' &&
-    typeof value.name === 'string' &&
-    typeof value.lastModified === 'number' &&
-    isBlobLike(value);
-/**
- * The BlobLike type omits arrayBuffer() because @types/node-fetch@^2.6.4 lacks it; but this check
- * adds the arrayBuffer() method type because it is available and used at runtime
- */
-const isBlobLike = (value) => value != null &&
-    typeof value === 'object' &&
-    typeof value.size === 'number' &&
-    typeof value.type === 'string' &&
-    typeof value.text === 'function' &&
-    typeof value.slice === 'function' &&
-    typeof value.arrayBuffer === 'function';
-const isUploadable = (value) => {
-    return isFileLike(value) || isResponseLike(value) || isFsReadStream(value);
-};
-/**
- * Helper for creating a {@link File} to pass to an SDK upload method from a variety of different data formats
- * @param value the raw content of the file.  Can be an {@link Uploadable}, {@link BlobLikePart}, or {@link AsyncIterable} of {@link BlobLikePart}s
- * @param {string=} name the name of the file. If omitted, toFile will try to determine a file name from bits if possible
- * @param {Object=} options additional properties
- * @param {string=} options.type the MIME type of the content
- * @param {number=} options.lastModified the last modified timestamp
- * @returns a {@link File} with the given properties
- */
-async function toFile(value, name, options) {
-    // If it's a promise, resolve it.
-    value = await value;
-    // If we've been given a `File` we don't need to do anything
-    if (isFileLike(value)) {
-        return value;
-    }
-    if (isResponseLike(value)) {
-        const blob = await value.blob();
-        name || (name = new URL(value.url).pathname.split(/[\\/]/).pop() ?? 'unknown_file');
-        // we need to convert the `Blob` into an array buffer because the `Blob` class
-        // that `node-fetch` defines is incompatible with the web standard which results
-        // in `new File` interpreting it as a string instead of binary data.
-        const data = isBlobLike(blob) ? [(await blob.arrayBuffer())] : [blob];
-        return new File$1(data, name, options);
-    }
-    const bits = await getBytes(value);
-    name || (name = getName(value) ?? 'unknown_file');
-    if (!options?.type) {
-        const type = bits[0]?.type;
-        if (typeof type === 'string') {
-            options = { ...options, type };
-        }
-    }
-    return new File$1(bits, name, options);
-}
-async function getBytes(value) {
-    let parts = [];
-    if (typeof value === 'string' ||
-        ArrayBuffer.isView(value) || // includes Uint8Array, Buffer, etc.
-        value instanceof ArrayBuffer) {
-        parts.push(value);
-    }
-    else if (isBlobLike(value)) {
-        parts.push(await value.arrayBuffer());
-    }
-    else if (isAsyncIterableIterator(value) // includes Readable, ReadableStream, etc.
-    ) {
-        for await (const chunk of value) {
-            parts.push(chunk); // TODO, consider validating?
-        }
-    }
-    else {
-        throw new Error(`Unexpected data type: ${typeof value}; constructor: ${value?.constructor
-            ?.name}; props: ${propsForError(value)}`);
-    }
-    return parts;
-}
-function propsForError(value) {
-    const props = Object.getOwnPropertyNames(value);
-    return `[${props.map((p) => `"${p}"`).join(', ')}]`;
-}
-function getName(value) {
-    return (getStringFromMaybeBuffer(value.name) ||
-        getStringFromMaybeBuffer(value.filename) ||
-        // For fs.ReadStream
-        getStringFromMaybeBuffer(value.path)?.split(/[\\/]/).pop());
-}
-const getStringFromMaybeBuffer = (x) => {
-    if (typeof x === 'string')
-        return x;
-    if (typeof Buffer !== 'undefined' && x instanceof Buffer)
-        return String(x);
-    return undefined;
-};
-const isAsyncIterableIterator = (value) => value != null && typeof value === 'object' && typeof value[Symbol.asyncIterator] === 'function';
-const isMultipartBody = (body) => body && typeof body === 'object' && body.body && body[Symbol.toStringTag] === 'MultipartBody';
-const multipartFormRequestOptions = async (opts) => {
-    const form = await createForm(opts.body);
-    return getMultipartRequestOptions(form, opts);
-};
-const createForm = async (body) => {
-    const form = new FormData$1();
-    await Promise.all(Object.entries(body || {}).map(([key, value]) => addFormValue(form, key, value)));
-    return form;
-};
-const addFormValue = async (form, key, value) => {
-    if (value === undefined)
-        return;
-    if (value == null) {
-        throw new TypeError(`Received null for "${key}"; to pass null in FormData, you must use the string 'null'`);
-    }
-    // TODO: make nested formats configurable
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        form.append(key, String(value));
-    }
-    else if (isUploadable(value)) {
-        const file = await toFile(value);
-        form.append(key, file);
-    }
-    else if (Array.isArray(value)) {
-        await Promise.all(value.map((entry) => addFormValue(form, key + '[]', entry)));
-    }
-    else if (typeof value === 'object') {
-        await Promise.all(Object.entries(value).map(([name, prop]) => addFormValue(form, `${key}[${name}]`, prop)));
-    }
-    else {
-        throw new TypeError(`Invalid value given to form, expected a string, number, boolean, object, Array, File or Blob but got ${value} instead`);
-    }
-};
-
-var __classPrivateFieldSet$4 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
-};
-var __classPrivateFieldGet$5 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var _AbstractPage_client;
-async function defaultParseResponse(props) {
-    const { response } = props;
-    if (props.options.stream) {
-        debug('response', response.status, response.url, response.headers, response.body);
-        // Note: there is an invariant here that isn't represented in the type system
-        // that if you set `stream: true` the response type must also be `Stream<T>`
-        if (props.options.__streamClass) {
-            return props.options.__streamClass.fromSSEResponse(response, props.controller);
-        }
-        return Stream.fromSSEResponse(response, props.controller);
-    }
-    // fetch refuses to read the body when the status code is 204.
-    if (response.status === 204) {
-        return null;
-    }
-    if (props.options.__binaryResponse) {
-        return response;
-    }
-    const contentType = response.headers.get('content-type');
-    const mediaType = contentType?.split(';')[0]?.trim();
-    const isJSON = mediaType?.includes('application/json') || mediaType?.endsWith('+json');
-    if (isJSON) {
-        const json = await response.json();
-        debug('response', response.status, response.url, response.headers, json);
-        return _addRequestID(json, response);
-    }
-    const text = await response.text();
-    debug('response', response.status, response.url, response.headers, text);
-    // TODO handle blob, arraybuffer, other content types, etc.
-    return text;
-}
-function _addRequestID(value, response) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return value;
-    }
-    return Object.defineProperty(value, '_request_id', {
-        value: response.headers.get('x-request-id'),
-        enumerable: false,
-    });
-}
-/**
- * A subclass of `Promise` providing additional helper methods
- * for interacting with the SDK.
- */
-class APIPromise extends Promise {
-    constructor(responsePromise, parseResponse = defaultParseResponse) {
-        super((resolve) => {
-            // this is maybe a bit weird but this has to be a no-op to not implicitly
-            // parse the response body; instead .then, .catch, .finally are overridden
-            // to parse the response
-            resolve(null);
-        });
-        this.responsePromise = responsePromise;
-        this.parseResponse = parseResponse;
-    }
-    _thenUnwrap(transform) {
-        return new APIPromise(this.responsePromise, async (props) => _addRequestID(transform(await this.parseResponse(props), props), props.response));
-    }
-    /**
-     * Gets the raw `Response` instance instead of parsing the response
-     * data.
-     *
-     * If you want to parse the response body but still get the `Response`
-     * instance, you can use {@link withResponse()}.
-     *
-     * 👋 Getting the wrong TypeScript type for `Response`?
-     * Try setting `"moduleResolution": "NodeNext"` if you can,
-     * or add one of these imports before your first `import … from 'openai'`:
-     * - `import 'openai/shims/node'` (if you're running on Node)
-     * - `import 'openai/shims/web'` (otherwise)
-     */
-    asResponse() {
-        return this.responsePromise.then((p) => p.response);
-    }
-    /**
-     * Gets the parsed response data, the raw `Response` instance and the ID of the request,
-     * returned via the X-Request-ID header which is useful for debugging requests and reporting
-     * issues to OpenAI.
-     *
-     * If you just want to get the raw `Response` instance without parsing it,
-     * you can use {@link asResponse()}.
-     *
-     *
-     * 👋 Getting the wrong TypeScript type for `Response`?
-     * Try setting `"moduleResolution": "NodeNext"` if you can,
-     * or add one of these imports before your first `import … from 'openai'`:
-     * - `import 'openai/shims/node'` (if you're running on Node)
-     * - `import 'openai/shims/web'` (otherwise)
-     */
-    async withResponse() {
-        const [data, response] = await Promise.all([this.parse(), this.asResponse()]);
-        return { data, response, request_id: response.headers.get('x-request-id') };
-    }
-    parse() {
-        if (!this.parsedPromise) {
-            this.parsedPromise = this.responsePromise.then(this.parseResponse);
-        }
-        return this.parsedPromise;
-    }
-    then(onfulfilled, onrejected) {
-        return this.parse().then(onfulfilled, onrejected);
-    }
-    catch(onrejected) {
-        return this.parse().catch(onrejected);
-    }
-    finally(onfinally) {
-        return this.parse().finally(onfinally);
-    }
-}
-class APIClient {
-    constructor({ baseURL, maxRetries = 2, timeout = 600000, // 10 minutes
-    httpAgent, fetch: overriddenFetch, }) {
-        this.baseURL = baseURL;
-        this.maxRetries = validatePositiveInteger('maxRetries', maxRetries);
-        this.timeout = validatePositiveInteger('timeout', timeout);
-        this.httpAgent = httpAgent;
-        this.fetch = overriddenFetch ?? fetch$1;
-    }
-    authHeaders(opts) {
-        return {};
-    }
-    /**
-     * Override this to add your own default headers, for example:
-     *
-     *  {
-     *    ...super.defaultHeaders(),
-     *    Authorization: 'Bearer 123',
-     *  }
-     */
-    defaultHeaders(opts) {
-        return {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': this.getUserAgent(),
-            ...getPlatformHeaders(),
-            ...this.authHeaders(opts),
-        };
-    }
-    /**
-     * Override this to add your own headers validation:
-     */
-    validateHeaders(headers, customHeaders) { }
-    defaultIdempotencyKey() {
-        return `stainless-node-retry-${uuid4()}`;
-    }
-    get(path, opts) {
-        return this.methodRequest('get', path, opts);
-    }
-    post(path, opts) {
-        return this.methodRequest('post', path, opts);
-    }
-    patch(path, opts) {
-        return this.methodRequest('patch', path, opts);
-    }
-    put(path, opts) {
-        return this.methodRequest('put', path, opts);
-    }
-    delete(path, opts) {
-        return this.methodRequest('delete', path, opts);
-    }
-    methodRequest(method, path, opts) {
-        return this.request(Promise.resolve(opts).then(async (opts) => {
-            const body = opts && isBlobLike(opts?.body) ? new DataView(await opts.body.arrayBuffer())
-                : opts?.body instanceof DataView ? opts.body
-                    : opts?.body instanceof ArrayBuffer ? new DataView(opts.body)
-                        : opts && ArrayBuffer.isView(opts?.body) ? new DataView(opts.body.buffer)
-                            : opts?.body;
-            return { method, path, ...opts, body };
-        }));
-    }
-    getAPIList(path, Page, opts) {
-        return this.requestAPIList(Page, { method: 'get', path, ...opts });
-    }
-    calculateContentLength(body) {
-        if (typeof body === 'string') {
-            if (typeof Buffer !== 'undefined') {
-                return Buffer.byteLength(body, 'utf8').toString();
-            }
-            if (typeof TextEncoder !== 'undefined') {
-                const encoder = new TextEncoder();
-                const encoded = encoder.encode(body);
-                return encoded.length.toString();
-            }
-        }
-        else if (ArrayBuffer.isView(body)) {
-            return body.byteLength.toString();
-        }
-        return null;
-    }
-    buildRequest(options, { retryCount = 0 } = {}) {
-        options = { ...options };
-        const { method, path, query, headers: headers = {} } = options;
-        const body = ArrayBuffer.isView(options.body) || (options.__binaryRequest && typeof options.body === 'string') ?
-            options.body
-            : isMultipartBody(options.body) ? options.body.body
-                : options.body ? JSON.stringify(options.body, null, 2)
-                    : null;
-        const contentLength = this.calculateContentLength(body);
-        const url = this.buildURL(path, query);
-        if ('timeout' in options)
-            validatePositiveInteger('timeout', options.timeout);
-        options.timeout = options.timeout ?? this.timeout;
-        const httpAgent = options.httpAgent ?? this.httpAgent ?? getDefaultAgent(url);
-        const minAgentTimeout = options.timeout + 1000;
-        if (typeof httpAgent?.options?.timeout === 'number' &&
-            minAgentTimeout > (httpAgent.options.timeout ?? 0)) {
-            // Allow any given request to bump our agent active socket timeout.
-            // This may seem strange, but leaking active sockets should be rare and not particularly problematic,
-            // and without mutating agent we would need to create more of them.
-            // This tradeoff optimizes for performance.
-            httpAgent.options.timeout = minAgentTimeout;
-        }
-        if (this.idempotencyHeader && method !== 'get') {
-            if (!options.idempotencyKey)
-                options.idempotencyKey = this.defaultIdempotencyKey();
-            headers[this.idempotencyHeader] = options.idempotencyKey;
-        }
-        const reqHeaders = this.buildHeaders({ options, headers, contentLength, retryCount });
-        const req = {
-            method,
-            ...(body && { body: body }),
-            headers: reqHeaders,
-            ...(httpAgent && { agent: httpAgent }),
-            // @ts-ignore node-fetch uses a custom AbortSignal type that is
-            // not compatible with standard web types
-            signal: options.signal ?? null,
-        };
-        return { req, url, timeout: options.timeout };
-    }
-    buildHeaders({ options, headers, contentLength, retryCount, }) {
-        const reqHeaders = {};
-        if (contentLength) {
-            reqHeaders['content-length'] = contentLength;
-        }
-        const defaultHeaders = this.defaultHeaders(options);
-        applyHeadersMut(reqHeaders, defaultHeaders);
-        applyHeadersMut(reqHeaders, headers);
-        // let builtin fetch set the Content-Type for multipart bodies
-        if (isMultipartBody(options.body) && kind !== 'node') {
-            delete reqHeaders['content-type'];
-        }
-        // Don't set theses headers if they were already set or removed through default headers or by the caller.
-        // We check `defaultHeaders` and `headers`, which can contain nulls, instead of `reqHeaders` to account
-        // for the removal case.
-        if (getHeader(defaultHeaders, 'x-stainless-retry-count') === undefined &&
-            getHeader(headers, 'x-stainless-retry-count') === undefined) {
-            reqHeaders['x-stainless-retry-count'] = String(retryCount);
-        }
-        if (getHeader(defaultHeaders, 'x-stainless-timeout') === undefined &&
-            getHeader(headers, 'x-stainless-timeout') === undefined &&
-            options.timeout) {
-            reqHeaders['x-stainless-timeout'] = String(options.timeout);
-        }
-        this.validateHeaders(reqHeaders, headers);
-        return reqHeaders;
-    }
-    /**
-     * Used as a callback for mutating the given `FinalRequestOptions` object.
-     */
-    async prepareOptions(options) { }
-    /**
-     * Used as a callback for mutating the given `RequestInit` object.
-     *
-     * This is useful for cases where you want to add certain headers based off of
-     * the request properties, e.g. `method` or `url`.
-     */
-    async prepareRequest(request, { url, options }) { }
-    parseHeaders(headers) {
-        return (!headers ? {}
-            : Symbol.iterator in headers ?
-                Object.fromEntries(Array.from(headers).map((header) => [...header]))
-                : { ...headers });
-    }
-    makeStatusError(status, error, message, headers) {
-        return APIError.generate(status, error, message, headers);
-    }
-    request(options, remainingRetries = null) {
-        return new APIPromise(this.makeRequest(options, remainingRetries));
-    }
-    async makeRequest(optionsInput, retriesRemaining) {
-        const options = await optionsInput;
-        const maxRetries = options.maxRetries ?? this.maxRetries;
-        if (retriesRemaining == null) {
-            retriesRemaining = maxRetries;
-        }
-        await this.prepareOptions(options);
-        const { req, url, timeout } = this.buildRequest(options, { retryCount: maxRetries - retriesRemaining });
-        await this.prepareRequest(req, { url, options });
-        debug('request', url, options, req.headers);
-        if (options.signal?.aborted) {
-            throw new APIUserAbortError();
-        }
-        const controller = new AbortController();
-        const response = await this.fetchWithTimeout(url, req, timeout, controller).catch(castToError);
-        if (response instanceof Error) {
-            if (options.signal?.aborted) {
-                throw new APIUserAbortError();
-            }
-            if (retriesRemaining) {
-                return this.retryRequest(options, retriesRemaining);
-            }
-            if (response.name === 'AbortError') {
-                throw new APIConnectionTimeoutError();
-            }
-            throw new APIConnectionError({ cause: response });
-        }
-        const responseHeaders = createResponseHeaders(response.headers);
-        if (!response.ok) {
-            if (retriesRemaining && this.shouldRetry(response)) {
-                const retryMessage = `retrying, ${retriesRemaining} attempts remaining`;
-                debug(`response (error; ${retryMessage})`, response.status, url, responseHeaders);
-                return this.retryRequest(options, retriesRemaining, responseHeaders);
-            }
-            const errText = await response.text().catch((e) => castToError(e).message);
-            const errJSON = safeJSON(errText);
-            const errMessage = errJSON ? undefined : errText;
-            const retryMessage = retriesRemaining ? `(error; no more retries left)` : `(error; not retryable)`;
-            debug(`response (error; ${retryMessage})`, response.status, url, responseHeaders, errMessage);
-            const err = this.makeStatusError(response.status, errJSON, errMessage, responseHeaders);
-            throw err;
-        }
-        return { response, options, controller };
-    }
-    requestAPIList(Page, options) {
-        const request = this.makeRequest(options, null);
-        return new PagePromise(this, request, Page);
-    }
-    buildURL(path, query) {
-        const url = isAbsoluteURL(path) ?
-            new URL(path)
-            : new URL(this.baseURL + (this.baseURL.endsWith('/') && path.startsWith('/') ? path.slice(1) : path));
-        const defaultQuery = this.defaultQuery();
-        if (!isEmptyObj(defaultQuery)) {
-            query = { ...defaultQuery, ...query };
-        }
-        if (typeof query === 'object' && query && !Array.isArray(query)) {
-            url.search = this.stringifyQuery(query);
-        }
-        return url.toString();
-    }
-    stringifyQuery(query) {
-        return Object.entries(query)
-            .filter(([_, value]) => typeof value !== 'undefined')
-            .map(([key, value]) => {
-            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-                return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-            }
-            if (value === null) {
-                return `${encodeURIComponent(key)}=`;
-            }
-            throw new OpenAIError(`Cannot stringify type ${typeof value}; Expected string, number, boolean, or null. If you need to pass nested query parameters, you can manually encode them, e.g. { query: { 'foo[key1]': value1, 'foo[key2]': value2 } }, and please open a GitHub issue requesting better support for your use case.`);
-        })
-            .join('&');
-    }
-    async fetchWithTimeout(url, init, ms, controller) {
-        const { signal, ...options } = init || {};
-        if (signal)
-            signal.addEventListener('abort', () => controller.abort());
-        const timeout = setTimeout(() => controller.abort(), ms);
-        const fetchOptions = {
-            signal: controller.signal,
-            ...options,
-        };
-        if (fetchOptions.method) {
-            // Custom methods like 'patch' need to be uppercased
-            // See https://github.com/nodejs/undici/issues/2294
-            fetchOptions.method = fetchOptions.method.toUpperCase();
-        }
-        return (
-        // use undefined this binding; fetch errors if bound to something else in browser/cloudflare
-        this.fetch.call(undefined, url, fetchOptions).finally(() => {
-            clearTimeout(timeout);
-        }));
-    }
-    shouldRetry(response) {
-        // Note this is not a standard header.
-        const shouldRetryHeader = response.headers.get('x-should-retry');
-        // If the server explicitly says whether or not to retry, obey.
-        if (shouldRetryHeader === 'true')
-            return true;
-        if (shouldRetryHeader === 'false')
-            return false;
-        // Retry on request timeouts.
-        if (response.status === 408)
-            return true;
-        // Retry on lock timeouts.
-        if (response.status === 409)
-            return true;
-        // Retry on rate limits.
-        if (response.status === 429)
-            return true;
-        // Retry internal errors.
-        if (response.status >= 500)
-            return true;
-        return false;
-    }
-    async retryRequest(options, retriesRemaining, responseHeaders) {
-        let timeoutMillis;
-        // Note the `retry-after-ms` header may not be standard, but is a good idea and we'd like proactive support for it.
-        const retryAfterMillisHeader = responseHeaders?.['retry-after-ms'];
-        if (retryAfterMillisHeader) {
-            const timeoutMs = parseFloat(retryAfterMillisHeader);
-            if (!Number.isNaN(timeoutMs)) {
-                timeoutMillis = timeoutMs;
-            }
-        }
-        // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
-        const retryAfterHeader = responseHeaders?.['retry-after'];
-        if (retryAfterHeader && !timeoutMillis) {
-            const timeoutSeconds = parseFloat(retryAfterHeader);
-            if (!Number.isNaN(timeoutSeconds)) {
-                timeoutMillis = timeoutSeconds * 1000;
-            }
-            else {
-                timeoutMillis = Date.parse(retryAfterHeader) - Date.now();
-            }
-        }
-        // If the API asks us to wait a certain amount of time (and it's a reasonable amount),
-        // just do what it says, but otherwise calculate a default
-        if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000)) {
-            const maxRetries = options.maxRetries ?? this.maxRetries;
-            timeoutMillis = this.calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries);
-        }
-        await sleep(timeoutMillis);
-        return this.makeRequest(options, retriesRemaining - 1);
-    }
-    calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries) {
-        const initialRetryDelay = 0.5;
-        const maxRetryDelay = 8.0;
-        const numRetries = maxRetries - retriesRemaining;
-        // Apply exponential backoff, but not more than the max.
-        const sleepSeconds = Math.min(initialRetryDelay * Math.pow(2, numRetries), maxRetryDelay);
-        // Apply some jitter, take up to at most 25 percent of the retry time.
-        const jitter = 1 - Math.random() * 0.25;
-        return sleepSeconds * jitter * 1000;
-    }
-    getUserAgent() {
-        return `${this.constructor.name}/JS ${VERSION}`;
-    }
-}
-class AbstractPage {
-    constructor(client, response, body, options) {
-        _AbstractPage_client.set(this, void 0);
-        __classPrivateFieldSet$4(this, _AbstractPage_client, client, "f");
-        this.options = options;
-        this.response = response;
-        this.body = body;
-    }
-    hasNextPage() {
-        const items = this.getPaginatedItems();
-        if (!items.length)
-            return false;
-        return this.nextPageInfo() != null;
-    }
-    async getNextPage() {
-        const nextInfo = this.nextPageInfo();
-        if (!nextInfo) {
-            throw new OpenAIError('No next page expected; please check `.hasNextPage()` before calling `.getNextPage()`.');
-        }
-        const nextOptions = { ...this.options };
-        if ('params' in nextInfo && typeof nextOptions.query === 'object') {
-            nextOptions.query = { ...nextOptions.query, ...nextInfo.params };
-        }
-        else if ('url' in nextInfo) {
-            const params = [...Object.entries(nextOptions.query || {}), ...nextInfo.url.searchParams.entries()];
-            for (const [key, value] of params) {
-                nextInfo.url.searchParams.set(key, value);
-            }
-            nextOptions.query = undefined;
-            nextOptions.path = nextInfo.url.toString();
-        }
-        return await __classPrivateFieldGet$5(this, _AbstractPage_client, "f").requestAPIList(this.constructor, nextOptions);
-    }
-    async *iterPages() {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        let page = this;
-        yield page;
-        while (page.hasNextPage()) {
-            page = await page.getNextPage();
-            yield page;
-        }
-    }
-    async *[(_AbstractPage_client = new WeakMap(), Symbol.asyncIterator)]() {
-        for await (const page of this.iterPages()) {
-            for (const item of page.getPaginatedItems()) {
-                yield item;
-            }
-        }
-    }
-}
-/**
- * This subclass of Promise will resolve to an instantiated Page once the request completes.
- *
- * It also implements AsyncIterable to allow auto-paginating iteration on an unawaited list call, eg:
- *
- *    for await (const item of client.items.list()) {
- *      console.log(item)
- *    }
- */
-class PagePromise extends APIPromise {
-    constructor(client, request, Page) {
-        super(request, async (props) => new Page(client, props.response, await defaultParseResponse(props), props.options));
-    }
-    /**
-     * Allow auto-paginating iteration on an unawaited list call, eg:
-     *
-     *    for await (const item of client.items.list()) {
-     *      console.log(item)
-     *    }
-     */
-    async *[Symbol.asyncIterator]() {
-        const page = await this;
-        for await (const item of page) {
-            yield item;
-        }
-    }
-}
-const createResponseHeaders = (headers) => {
-    return new Proxy(Object.fromEntries(
-    // @ts-ignore
-    headers.entries()), {
-        get(target, name) {
-            const key = name.toString();
-            return target[key.toLowerCase()] || target[key];
-        },
-    });
-};
-// This is required so that we can determine if a given object matches the RequestOptions
-// type at runtime. While this requires duplication, it is enforced by the TypeScript
-// compiler such that any missing / extraneous keys will cause an error.
-const requestOptionsKeys = {
-    method: true,
-    path: true,
-    query: true,
-    body: true,
-    headers: true,
-    maxRetries: true,
-    stream: true,
-    timeout: true,
-    httpAgent: true,
-    signal: true,
-    idempotencyKey: true,
-    __metadata: true,
-    __binaryRequest: true,
-    __binaryResponse: true,
-    __streamClass: true,
-};
-const isRequestOptions = (obj) => {
-    return (typeof obj === 'object' &&
-        obj !== null &&
-        !isEmptyObj(obj) &&
-        Object.keys(obj).every((k) => hasOwn(requestOptionsKeys, k)));
-};
-const getPlatformProperties = () => {
-    if (typeof Deno !== 'undefined' && Deno.build != null) {
-        return {
-            'X-Stainless-Lang': 'js',
-            'X-Stainless-Package-Version': VERSION,
-            'X-Stainless-OS': normalizePlatform(Deno.build.os),
-            'X-Stainless-Arch': normalizeArch(Deno.build.arch),
-            'X-Stainless-Runtime': 'deno',
-            'X-Stainless-Runtime-Version': typeof Deno.version === 'string' ? Deno.version : Deno.version?.deno ?? 'unknown',
-        };
-    }
-    if (typeof EdgeRuntime !== 'undefined') {
-        return {
-            'X-Stainless-Lang': 'js',
-            'X-Stainless-Package-Version': VERSION,
-            'X-Stainless-OS': 'Unknown',
-            'X-Stainless-Arch': `other:${EdgeRuntime}`,
-            'X-Stainless-Runtime': 'edge',
-            'X-Stainless-Runtime-Version': process.version,
-        };
-    }
-    // Check if Node.js
-    if (Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]') {
-        return {
-            'X-Stainless-Lang': 'js',
-            'X-Stainless-Package-Version': VERSION,
-            'X-Stainless-OS': normalizePlatform(process.platform),
-            'X-Stainless-Arch': normalizeArch(process.arch),
-            'X-Stainless-Runtime': 'node',
-            'X-Stainless-Runtime-Version': process.version,
-        };
-    }
-    const browserInfo = getBrowserInfo();
-    if (browserInfo) {
-        return {
-            'X-Stainless-Lang': 'js',
-            'X-Stainless-Package-Version': VERSION,
-            'X-Stainless-OS': 'Unknown',
-            'X-Stainless-Arch': 'unknown',
-            'X-Stainless-Runtime': `browser:${browserInfo.browser}`,
-            'X-Stainless-Runtime-Version': browserInfo.version,
-        };
-    }
-    // TODO add support for Cloudflare workers, etc.
-    return {
-        'X-Stainless-Lang': 'js',
-        'X-Stainless-Package-Version': VERSION,
-        'X-Stainless-OS': 'Unknown',
-        'X-Stainless-Arch': 'unknown',
-        'X-Stainless-Runtime': 'unknown',
-        'X-Stainless-Runtime-Version': 'unknown',
-    };
-};
-// Note: modified from https://github.com/JS-DevTools/host-environment/blob/b1ab79ecde37db5d6e163c050e54fe7d287d7c92/src/isomorphic.browser.ts
-function getBrowserInfo() {
-    if (typeof navigator === 'undefined' || !navigator) {
-        return null;
-    }
-    // NOTE: The order matters here!
-    const browserPatterns = [
-        { key: 'edge', pattern: /Edge(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-        { key: 'ie', pattern: /MSIE(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-        { key: 'ie', pattern: /Trident(?:.*rv\:(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-        { key: 'chrome', pattern: /Chrome(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-        { key: 'firefox', pattern: /Firefox(?:\W+(\d+)\.(\d+)(?:\.(\d+))?)?/ },
-        { key: 'safari', pattern: /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/ },
-    ];
-    // Find the FIRST matching browser
-    for (const { key, pattern } of browserPatterns) {
-        const match = pattern.exec(navigator.userAgent);
-        if (match) {
-            const major = match[1] || 0;
-            const minor = match[2] || 0;
-            const patch = match[3] || 0;
-            return { browser: key, version: `${major}.${minor}.${patch}` };
-        }
-    }
-    return null;
-}
-const normalizeArch = (arch) => {
-    // Node docs:
-    // - https://nodejs.org/api/process.html#processarch
-    // Deno docs:
-    // - https://doc.deno.land/deno/stable/~/Deno.build
-    if (arch === 'x32')
-        return 'x32';
-    if (arch === 'x86_64' || arch === 'x64')
-        return 'x64';
-    if (arch === 'arm')
-        return 'arm';
-    if (arch === 'aarch64' || arch === 'arm64')
-        return 'arm64';
-    if (arch)
-        return `other:${arch}`;
-    return 'unknown';
-};
-const normalizePlatform = (platform) => {
-    // Node platforms:
-    // - https://nodejs.org/api/process.html#processplatform
-    // Deno platforms:
-    // - https://doc.deno.land/deno/stable/~/Deno.build
-    // - https://github.com/denoland/deno/issues/14799
-    platform = platform.toLowerCase();
-    // NOTE: this iOS check is untested and may not work
-    // Node does not work natively on IOS, there is a fork at
-    // https://github.com/nodejs-mobile/nodejs-mobile
-    // however it is unknown at the time of writing how to detect if it is running
-    if (platform.includes('ios'))
-        return 'iOS';
-    if (platform === 'android')
-        return 'Android';
-    if (platform === 'darwin')
-        return 'MacOS';
-    if (platform === 'win32')
-        return 'Windows';
-    if (platform === 'freebsd')
-        return 'FreeBSD';
-    if (platform === 'openbsd')
-        return 'OpenBSD';
-    if (platform === 'linux')
-        return 'Linux';
-    if (platform)
-        return `Other:${platform}`;
-    return 'Unknown';
-};
-let _platformHeaders;
-const getPlatformHeaders = () => {
-    return (_platformHeaders ?? (_platformHeaders = getPlatformProperties()));
-};
-const safeJSON = (text) => {
-    try {
-        return JSON.parse(text);
-    }
-    catch (err) {
-        return undefined;
-    }
-};
-// https://url.spec.whatwg.org/#url-scheme-string
-const startsWithSchemeRegexp = /^[a-z][a-z0-9+.-]*:/i;
-const isAbsoluteURL = (url) => {
-    return startsWithSchemeRegexp.test(url);
-};
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const validatePositiveInteger = (name, n) => {
-    if (typeof n !== 'number' || !Number.isInteger(n)) {
-        throw new OpenAIError(`${name} must be an integer`);
-    }
-    if (n < 0) {
-        throw new OpenAIError(`${name} must be a positive integer`);
-    }
-    return n;
-};
-const castToError = (err) => {
-    if (err instanceof Error)
-        return err;
-    if (typeof err === 'object' && err !== null) {
-        try {
-            return new Error(JSON.stringify(err));
-        }
-        catch { }
-    }
-    return new Error(err);
-};
-/**
- * Read an environment variable.
- *
- * Trims beginning and trailing whitespace.
- *
- * Will return undefined if the environment variable doesn't exist or cannot be accessed.
- */
-const readEnv = (env) => {
-    if (typeof process !== 'undefined') {
-        return process.env?.[env]?.trim() ?? undefined;
-    }
-    if (typeof Deno !== 'undefined') {
-        return Deno.env?.get?.(env)?.trim();
-    }
-    return undefined;
-};
-// https://stackoverflow.com/a/34491287
-function isEmptyObj(obj) {
-    if (!obj)
-        return true;
-    for (const _k in obj)
-        return false;
-    return true;
-}
-// https://eslint.org/docs/latest/rules/no-prototype-builtins
-function hasOwn(obj, key) {
-    return Object.prototype.hasOwnProperty.call(obj, key);
-}
-/**
- * Copies headers from "newHeaders" onto "targetHeaders",
- * using lower-case for all properties,
- * ignoring any keys with undefined values,
- * and deleting any keys with null values.
- */
-function applyHeadersMut(targetHeaders, newHeaders) {
-    for (const k in newHeaders) {
-        if (!hasOwn(newHeaders, k))
-            continue;
-        const lowerKey = k.toLowerCase();
-        if (!lowerKey)
-            continue;
-        const val = newHeaders[k];
-        if (val === null) {
-            delete targetHeaders[lowerKey];
-        }
-        else if (val !== undefined) {
-            targetHeaders[lowerKey] = val;
-        }
-    }
-}
-const SENSITIVE_HEADERS = new Set(['authorization', 'api-key']);
-function debug(action, ...args) {
-    if (typeof process !== 'undefined' && process?.env?.['DEBUG'] === 'true') {
-        const modifiedArgs = args.map((arg) => {
-            if (!arg) {
-                return arg;
-            }
-            // Check for sensitive headers in request body 'headers' object
-            if (arg['headers']) {
-                // clone so we don't mutate
-                const modifiedArg = { ...arg, headers: { ...arg['headers'] } };
-                for (const header in arg['headers']) {
-                    if (SENSITIVE_HEADERS.has(header.toLowerCase())) {
-                        modifiedArg['headers'][header] = 'REDACTED';
-                    }
-                }
-                return modifiedArg;
-            }
-            let modifiedArg = null;
-            // Check for sensitive headers in headers object
-            for (const header in arg) {
-                if (SENSITIVE_HEADERS.has(header.toLowerCase())) {
-                    // avoid making a copy until we need to
-                    modifiedArg ?? (modifiedArg = { ...arg });
-                    modifiedArg[header] = 'REDACTED';
-                }
-            }
-            return modifiedArg ?? arg;
-        });
-        console.log(`OpenAI:DEBUG:${action}`, ...modifiedArgs);
-    }
-}
-/**
- * https://stackoverflow.com/a/2117523
- */
-const uuid4 = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
-};
-const isRunningInBrowser = () => {
-    return (
-    // @ts-ignore
-    typeof window !== 'undefined' &&
-        // @ts-ignore
-        typeof window.document !== 'undefined' &&
-        // @ts-ignore
-        typeof navigator !== 'undefined');
-};
-const isHeadersProtocol = (headers) => {
-    return typeof headers?.get === 'function';
-};
-const getHeader = (headers, header) => {
-    const lowerCasedHeader = header.toLowerCase();
-    if (isHeadersProtocol(headers)) {
-        // to deal with the case where the header looks like Stainless-Event-Id
-        const intercapsHeader = header[0]?.toUpperCase() +
-            header.substring(1).replace(/([^\w])(\w)/g, (_m, g1, g2) => g1 + g2.toUpperCase());
-        for (const key of [header, lowerCasedHeader, header.toUpperCase(), intercapsHeader]) {
-            const value = headers.get(key);
-            if (value) {
-                return value;
-            }
-        }
-    }
-    for (const [key, value] of Object.entries(headers)) {
-        if (key.toLowerCase() === lowerCasedHeader) {
-            if (Array.isArray(value)) {
-                if (value.length <= 1)
-                    return value[0];
-                console.warn(`Received ${value.length} entries for the ${header} header, using the first entry.`);
-                return value[0];
-            }
-            return value;
-        }
-    }
-    return undefined;
-};
-function isObj(obj) {
-    return obj != null && typeof obj === 'object' && !Array.isArray(obj);
 }
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
@@ -45901,7 +45924,7 @@ class Runs extends APIResource {
                             }
                         }
                     }
-                    await sleep(sleepInterval);
+                    await sleep$1(sleepInterval);
                     break;
                 //We return the run in any terminal state.
                 case 'requires_action':
@@ -46130,7 +46153,7 @@ let Files$1 = class Files extends APIResource {
         const start = Date.now();
         let file = await this.retrieve(id);
         while (!file.status || !TERMINAL_STATES.has(file.status)) {
-            await sleep(pollInterval);
+            await sleep$1(pollInterval);
             file = await this.retrieve(id);
             if (Date.now() - start > maxWait) {
                 throw new APIConnectionTimeoutError({
@@ -46897,7 +46920,7 @@ class Files extends APIResource {
                             }
                         }
                     }
-                    await sleep(sleepInterval);
+                    await sleep$1(sleepInterval);
                     break;
                 case 'failed':
                 case 'completed':
@@ -47014,7 +47037,7 @@ class FileBatches extends APIResource {
                             }
                         }
                     }
-                    await sleep(sleepInterval);
+                    await sleep$1(sleepInterval);
                     break;
                 case 'failed':
                 case 'cancelled':
@@ -47260,9 +47283,13 @@ const apiKey = process.env.OPENAI_API_KEY || "";
 class OpenAIClient {
     client;
     options;
+    fullModelName;
     model;
+    retries;
     constructor(modelName, options) {
+        this.fullModelName = modelName;
         this.model = getModelName(modelName);
+        this.retries = options.retries;
         this.options = options;
         this.client = new OpenAI({
             apiKey: apiKey
@@ -47270,6 +47297,9 @@ class OpenAIClient {
         if (this.options.debug) {
             coreExports.debug(`Using model: ${modelName}`);
         }
+    }
+    getFullModelName() {
+        return this.fullModelName;
     }
     async create(ctx, prompts) {
         try {
@@ -47286,16 +47316,19 @@ class OpenAIClient {
                 temperature: 0.1
                 // max_tokens: 2000,
             });
+            // reset retries
+            this.retries = this.options.retries;
             return response.choices[0]?.message?.content || "";
         }
         catch (error) {
             coreExports.warning(`Failed to review code for : ${error instanceof Error ? error.message : String(error)}`);
             // Retry logic
-            if (this.options.retries > 0) {
-                this.options.retries--;
+            if (this.retries > 0) {
+                this.retries--;
+                await sleep$1(1000); // Wait for 1 second before retrying
                 return this.create(ctx, prompts);
             }
-            return "Failed to review this file due to an API error.";
+            throw new Error("Failed to review this file due to an API error.");
         }
     }
 }
@@ -47364,8 +47397,74 @@ class Reviewer {
     constructor(commenter, options) {
         this.commenter = commenter;
         this.options = options;
-        this.summaryBot = createChatBotFromModel(this.options.summaryModel, this.options);
-        this.reviewBot = createChatBotFromModel(this.options.model, this.options);
+        this.summaryBot = this.options.summaryModel.map((summaryModel) => createChatBotFromModel(summaryModel, this.options));
+        this.reviewBot = this.options.model.map((model) => createChatBotFromModel(model, this.options));
+    }
+    getSummaryBot() {
+        if (this.summaryBot.length > 0) {
+            return this.summaryBot[0];
+        }
+    }
+    fallbackSummaryBot() {
+        if (this.summaryBot.length > 0) {
+            const old = this.summaryBot.pop();
+            const next = this.getSummaryBot();
+            if (next) {
+                coreExports.info(`Fallback summary bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`);
+            }
+            else {
+                coreExports.info(`No more summary bot available`);
+            }
+        }
+    }
+    getReviewBot() {
+        if (this.reviewBot.length > 0) {
+            return this.reviewBot[0];
+        }
+    }
+    fallbackReviewBot() {
+        if (this.reviewBot.length > 0) {
+            const old = this.reviewBot.pop();
+            const next = this.getReviewBot();
+            if (next) {
+                coreExports.info(`Fallback review bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`);
+            }
+            else {
+                coreExports.info(`No more review bot available`);
+            }
+        }
+    }
+    async createSummary(prContext, prompts) {
+        const summaryBot = this.getSummaryBot();
+        if (!summaryBot) {
+            throw new Error("No summary bot available");
+        }
+        try {
+            const summary = await summaryBot.create(prContext, prompts);
+            return summary;
+        }
+        catch (error) {
+            coreExports.warning(`Failed to create summary: ${error}`);
+            // fallback to the next summary bot
+            this.fallbackSummaryBot();
+            return this.createSummary(prContext, prompts);
+        }
+    }
+    async createReview(prContext, prompts) {
+        const reviewBot = this.getReviewBot();
+        if (!reviewBot) {
+            throw new Error("No summary bot available");
+        }
+        try {
+            const review = await reviewBot.create(prContext, prompts);
+            return review;
+        }
+        catch (error) {
+            coreExports.warning(`Failed to create review: ${error}`);
+            // fallback to the next review bot
+            this.fallbackReviewBot();
+            return this.createReview(prContext, prompts);
+        }
     }
     /**
      * Generates summaries for each file change in a pull request and creates an overall release note.
@@ -47382,7 +47481,7 @@ class Reviewer {
             // Create a prompt specific to this file's changes
             const prompt = prompts.renderSummarizeFileDiff(prContext, change);
             // Generate summary for this specific file change using the chatbot
-            const summary = await this.summaryBot.create(prContext, prompt);
+            const summary = await this.createSummary(prContext, prompt);
             // Set the summary in the change object
             change.summary = summary;
             // Log the summary for debugging purposes
@@ -47395,7 +47494,7 @@ class Reviewer {
         // Generate a comprehensive release note based on all file summaries
         const prompt = prompts.renderSummarizeReleaseNote(message);
         coreExports.debug(`Release Note prompt: ${JSON.stringify(prompt, null, 2)}`);
-        return await this.summaryBot.create(prContext, prompt);
+        return await this.createSummary(prContext, prompt);
     }
     /**
      * Reviews code changes in a pull request and posts review comments.
@@ -47417,7 +47516,7 @@ class Reviewer {
                 coreExports.debug(`Start review: ${diff.filename}`);
                 let reviewComment = undefined;
                 try {
-                    reviewComment = await this.reviewBot.create(prContext, reviewPrompt);
+                    reviewComment = await this.createReview(prContext, reviewPrompt);
                     // Trim leading/trailing whitespace from the review comment
                     reviewComment.trim();
                 }
@@ -47493,7 +47592,7 @@ const parseReviewComment = (reviewComment) => {
  * @returns Configured Options instance with all action parameters
  */
 const getOptions = () => {
-    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getInput("summary_model"), coreExports.getInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"));
+    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"));
 };
 const token = process.env.GITHUB_TOKEN || "";
 /**

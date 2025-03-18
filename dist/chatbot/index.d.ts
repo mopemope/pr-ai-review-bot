@@ -12,6 +12,14 @@ export type Message = {
  * Interface for chatbot clients that can review code
  */
 export interface ChatBot {
+    /**
+     * returns the full model name
+     */
+    getFullModelName(): string;
+    /**
+     * generate message for the given context
+     * @returns llm response
+     */
     create(ctx: PullRequestContext, prompts: Message[]): Promise<string>;
 }
 /**
