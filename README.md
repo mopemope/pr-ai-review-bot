@@ -53,31 +53,70 @@ jobs:
         with:
           fetch-depth: 0 # Required to get proper diff
 
-      - uses: mopemope/pr-ai-review-bot@main
+      - uses: mopemope/pr-ai-review-bot@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
           model: openai/gpt-google/gemini-2.0-flash-exp
           summary_model: google/gemini-2.0-flash-exp
-          language: en-US
           use_file_content: true
 ```
 
 ## Configuration
 
-see `action.yml`.
+For detailed configuration settings, please refer to [action.yml](action.yml).
 
-| Option                  | Description                         | Default                |
-| ----------------------- | ----------------------------------- | ---------------------- |
-| `debug`                 | Enable debug logging                | `false`                |
-| `disable_review`        | Skip code review                    | `false`                |
-| `disable_release_notes` | Skip release notes generation       | `false`                |
-| `system_prompt`         | Custom prompt for AI reviewer       | Default system prompt  |
-| `language`              | Review comments language            | `en-US`                |
-| `model`                 | AI model for code review            | `openai/gpt-4o`        |
-| `summary_model`         | AI model for summaries              | `openai/gpt-3.5-turbo` |
-| `use_file_content`      | Include full file content in review | `false`                |
+| Option                    | Description                                                                | Default                                                                     |
+| ------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `debug`                   | Enable debug logging                                                       | `false`                                                                     |
+| `path_filters`            | Path filters for review (minimatch patterns), one per line                 | See [action.yml](action.yml) for default exclusion patterns                 |
+| `disable_review`          | Skip code review                                                           | `false`                                                                     |
+| `disable_release_notes`   | Skip release notes generation                                              | `false`                                                                     |
+| `summary_model`           | Model for simple tasks like summarizing diffs                              | `openai/gpt-3.5-turbo`                                                      |
+| `model`                   | Model for review tasks                                                     | `openai/gpt-4o`                                                             |
+| `retries`                 | Number of retries for API calls                                            | `5`                                                                         |
+| `timeout_ms`              | Timeout for API calls in milliseconds                                      | `360000` (6 minutes)                                                        |
+| `release_notes_title`     | Title for the release notes                                                | `Key Changes`                                                               |
+| `system_prompt`           | System message for LLM (see [action.yml](action.yml) for default template) | Detailed review prompt                                                      |
+| `summarize_release_notes` | Prompt for generating release notes                                        | See [action.yml](action.yml) for default template                           |
+| `use_file_content`        | Include full file content in review context                                | `false`                                                                     |
+| `custom_review_policy`    | Custom policies for code review                                            | `""`                                                                        |
+| `language`                | response language                                                          | `en-US`                                                                     |
+| `comment_greeting`        | Greeting message for comments                                              | `Review bot comments:`                                                      |
+| `ignore_keywords`         | Keywords to skip review (one per line)                                     | `@review-bot: ignore`, `@review-bot: no-review`, `@review-bot: skip-review` |
+
+default system_prompt:
+
+```
+You are a highly meticulous and logically rigorous software development assistant.
+Your approach is characterized by strict validation, self-reflection, and iterative analysis, ensuring that your reviews are consistent and insightful.
+You act as a highly experienced software engineer, performing in-depth reviews of modified code (code hunks) and providing concrete code snippets for improvement.
+
+### Key Review Areas
+You will analyze the following critical aspects to identify and resolve issues, improving overall code quality:
+
+- Logical accuracy and soundness
+- Security vulnerabilities and risks
+- Performance and optimization
+- Potential data races and concurrency issues
+- Consistency and predictable behavior
+- Appropriate error handling
+- Maintainability and readability
+- Modularity and reusability
+- Complexity management (keeping the design simple and comprehensible)
+- Best practices (e.g., DRY, SOLID, KISS, etc.)
+
+### Areas to Avoid Commenting On
+- Minor code style issues (e.g., indentation, naming conventions, etc.)
+- Lack of comments or documentation
+
+### Review Guidelines
+- Maintain consistent evaluation criteria to ensure stable and reliable feedback.
+- Focus on identifying and resolving significant issues while deliberately ignoring trivial ones.
+- Provide specific improvement suggestions, including code snippets whenever possible.
+- Deliver feedback based on deep analysis rather than surface-level observations.
+```
 
 ## Specifying AI Models
 
