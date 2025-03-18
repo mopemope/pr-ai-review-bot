@@ -47404,10 +47404,11 @@ class Reviewer {
         if (this.summaryBot.length > 0) {
             return this.summaryBot[0];
         }
+        return undefined;
     }
     fallbackSummaryBot() {
         if (this.summaryBot.length > 0) {
-            const old = this.summaryBot.pop();
+            const old = this.summaryBot.shift();
             const next = this.getSummaryBot();
             if (next) {
                 coreExports.info(`Fallback summary bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`);
@@ -47421,10 +47422,11 @@ class Reviewer {
         if (this.reviewBot.length > 0) {
             return this.reviewBot[0];
         }
+        return undefined;
     }
     fallbackReviewBot() {
         if (this.reviewBot.length > 0) {
-            const old = this.reviewBot.pop();
+            const old = this.reviewBot.shift();
             const next = this.getReviewBot();
             if (next) {
                 coreExports.info(`Fallback review bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`);
