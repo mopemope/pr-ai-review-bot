@@ -19,6 +19,7 @@ jobs:
   review:
     name: Code Review
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - uses: actions/checkout@v4
