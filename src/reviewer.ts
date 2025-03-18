@@ -69,6 +69,7 @@ export class Reviewer {
     if (this.summaryBot.length > 0) {
       return this.summaryBot[0]
     }
+    return undefined
   }
 
   fallbackSummaryBot(): void {
@@ -89,6 +90,7 @@ export class Reviewer {
     if (this.reviewBot.length > 0) {
       return this.reviewBot[0]
     }
+    return undefined
   }
 
   fallbackReviewBot(): void {
