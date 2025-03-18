@@ -47465,19 +47465,22 @@ const parseReviewComment = (reviewComment) => {
     const result = [];
     for (const section of sections) {
         // Extract line numbers and comment content
-        const match = section.trim().match(/^(\d+)-(\d+):?\s*([\s\S]+)$/);
+        const match = section.trim().match(/^(\d+)-(\d+):?\s*([\s\S]+\S)$/);
         if (match) {
             const startLine = Number.parseInt(match[1], 10);
             const endLine = Number.parseInt(match[2], 10);
             const comment = match[3].trim();
             // Check if comment contains LGTM
             const isLGTM = comment.toLowerCase().includes("lgtm!");
-            result.push({
-                startLine,
-                endLine,
-                comment,
-                isLGTM
-            });
+            // Only add the review if the line range is valid (startLine <= endLine)
+            if (startLine <= endLine) {
+                result.push({
+                    startLine,
+                    endLine,
+                    comment,
+                    isLGTM
+                });
+            }
         }
     }
     return result;
