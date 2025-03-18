@@ -18,7 +18,7 @@ clarification.
 
 ## Preparation
 
-Use `git status` to check the current git context. If there are many changes
+Use `git status` to check the current Git context. If there are many changes
 unrelated to the instructed task, suggest to the user to start it as a separate
 task. If told to ignore this, proceed as instructed.
 
