@@ -17,8 +17,8 @@ describe("Options", () => {
         true,
         ["src/**/*.ts", "!src/**/*.test.ts"],
         "system prompt",
-        "gpt-4-1106-preview",
-        "gpt-3.5-turbo",
+        ["gpt-4-1106-preview"],
+        ["gpt-3.5-turbo"],
         "3",
         "60000",
         "ja",
@@ -39,8 +39,8 @@ describe("Options", () => {
       ]
       expect(JSON.parse(options.pathFilters.toString())).toEqual(expectedRules)
       expect(options.systemPrompt).toBe("system prompt")
-      expect(options.summaryModel).toBe("gpt-4-1106-preview")
-      expect(options.model).toBe("gpt-3.5-turbo")
+      expect(options.summaryModel).toStrictEqual(["gpt-4-1106-preview"])
+      expect(options.model).toStrictEqual(["gpt-3.5-turbo"])
       expect(options.retries).toBe(3)
       expect(options.timeoutMS).toBe(60000)
       expect(options.language).toBe("ja")
@@ -59,8 +59,8 @@ describe("Options", () => {
         false,
         ["src/**/*.ts", "!src/**/*.test.ts"],
         "",
-        "",
-        "",
+        [""],
+        [""],
         "0",
         "0",
         "",

@@ -7,8 +7,8 @@ export class Options {
   disableReleaseNotes: boolean
   pathFilters: PathFilter
   systemPrompt: string
-  summaryModel: string
-  model: string
+  summaryModel: string[]
+  model: string[]
   retries: number
   timeoutMS: number
   language: string
@@ -26,8 +26,8 @@ export class Options {
     disableReleaseNotes: boolean,
     pathFilters: string[] | null,
     systemPrompt: string,
-    summaryModel: string,
-    model: string,
+    summaryModel: string[],
+    model: string[],
     retries: string,
     timeoutMS: string,
     language: string,

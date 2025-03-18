@@ -1,3 +1,4 @@
+import { type ChatBot, Message } from "./chatbot/index.js";
 import type { Commenter } from "./commenter.js";
 import type { PullRequestContext } from "./context.js";
 import type { Options } from "./option.js";
@@ -41,6 +42,12 @@ export declare class Reviewer {
      * @param options - Configuration options for the reviewer and chatbot
      */
     constructor(commenter: Commenter, options: Options);
+    getSummaryBot(): ChatBot | undefined;
+    fallbackSummaryBot(): void;
+    getReviewBot(): ChatBot | undefined;
+    fallbackReviewBot(): void;
+    createSummary(prContext: PullRequestContext, prompts: Message[]): Promise<string>;
+    createReview(prContext: PullRequestContext, prompts: Message[]): Promise<string>;
     /**
      * Generates summaries for each file change in a pull request and creates an overall release note.
      * It processes all files sequentially, generating individual file summaries before creating a consolidated release note.

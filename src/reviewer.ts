@@ -1,5 +1,9 @@
-import { debug, warning } from "@actions/core"
-import { type ChatBot, createChatBotFromModel } from "./chatbot/index.js"
+import { debug, info, warning } from "@actions/core"
+import {
+  type ChatBot,
+  createChatBotFromModel,
+  Message
+} from "./chatbot/index.js"
 import type { Commenter } from "./commenter.js"
 import type { PullRequestContext } from "./context.js"
 import type { Options } from "./option.js"
@@ -34,13 +38,13 @@ export class Reviewer {
    * ChatBot instance used for generating summaries of changes.
    * @private
    */
-  private summaryBot: ChatBot
+  private summaryBot: ChatBot[]
 
   /**
    * The chatbot instance used for generating review comments.
    * @private
    */
-  private reviewBot: ChatBot
+  private reviewBot: ChatBot[]
 
   /**
    * Creates a new Reviewer instance.
@@ -51,11 +55,94 @@ export class Reviewer {
   constructor(commenter: Commenter, options: Options) {
     this.commenter = commenter
     this.options = options
-    this.summaryBot = createChatBotFromModel(
-      this.options.summaryModel,
-      this.options
+
+    this.summaryBot = this.options.summaryModel.map((summaryModel) =>
+      createChatBotFromModel(summaryModel, this.options)
     )
-    this.reviewBot = createChatBotFromModel(this.options.model, this.options)
+
+    this.reviewBot = this.options.model.map((model) =>
+      createChatBotFromModel(model, this.options)
+    )
+  }
+
+  getSummaryBot(): ChatBot | undefined {
+    if (this.summaryBot.length > 0) {
+      return this.summaryBot[0]
+    }
+    return undefined
+  }
+
+  fallbackSummaryBot(): void {
+    if (this.summaryBot.length > 0) {
+      const old = this.summaryBot.shift()
+      const next = this.getSummaryBot()
+      if (next) {
+        info(
+          `Fallback summary bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`
+        )
+      } else {
+        info(`No more summary bot available`)
+      }
+    }
+  }
+
+  getReviewBot(): ChatBot | undefined {
+    if (this.reviewBot.length > 0) {
+      return this.reviewBot[0]
+    }
+    return undefined
+  }
+
+  fallbackReviewBot(): void {
+    if (this.reviewBot.length > 0) {
+      const old = this.reviewBot.shift()
+      const next = this.getReviewBot()
+      if (next) {
+        info(
+          `Fallback review bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`
+        )
+      } else {
+        info(`No more review bot available`)
+      }
+    }
+  }
+
+  async createSummary(
+    prContext: PullRequestContext,
+    prompts: Message[]
+  ): Promise<string> {
+    const summaryBot = this.getSummaryBot()
+    if (!summaryBot) {
+      throw new Error("No summary bot available")
+    }
+    try {
+      const summary = await summaryBot.create(prContext, prompts)
+      return summary
+    } catch (error) {
+      warning(`Failed to create summary: ${error}`)
+      // fallback to the next summary bot
+      this.fallbackSummaryBot()
+      return this.createSummary(prContext, prompts)
+    }
+  }
+
+  async createReview(
+    prContext: PullRequestContext,
+    prompts: Message[]
+  ): Promise<string> {
+    const reviewBot = this.getReviewBot()
+    if (!reviewBot) {
+      throw new Error("No summary bot available")
+    }
+    try {
+      const review = await reviewBot.create(prContext, prompts)
+      return review
+    } catch (error) {
+      warning(`Failed to create review: ${error}`)
+      // fallback to the next review bot
+      this.fallbackReviewBot()
+      return this.createReview(prContext, prompts)
+    }
   }
 
   /**
@@ -81,7 +168,7 @@ export class Reviewer {
       // Create a prompt specific to this file's changes
       const prompt = prompts.renderSummarizeFileDiff(prContext, change)
       // Generate summary for this specific file change using the chatbot
-      const summary = await this.summaryBot.create(prContext, prompt)
+      const summary = await this.createSummary(prContext, prompt)
 
       // Set the summary in the change object
       change.summary = summary
@@ -96,7 +183,8 @@ export class Reviewer {
     // Generate a comprehensive release note based on all file summaries
     const prompt = prompts.renderSummarizeReleaseNote(message)
     debug(`Release Note prompt: ${JSON.stringify(prompt, null, 2)}`)
-    return await this.summaryBot.create(prContext, prompt)
+
+    return await this.createSummary(prContext, prompt)
   }
 
   /**
@@ -129,7 +217,7 @@ export class Reviewer {
 
         let reviewComment: string | undefined = undefined
         try {
-          reviewComment = await this.reviewBot.create(prContext, reviewPrompt)
+          reviewComment = await this.createReview(prContext, reviewPrompt)
           // Trim leading/trailing whitespace from the review comment
           reviewComment.trim()
         } catch (error) {

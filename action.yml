@@ -133,13 +133,20 @@ inputs:
     default: "false"
   summary_model:
     required: true
-    description:
-      "Model to use for simple tasks like summarizing diff on a file."
-    default: "openai/gpt-3.5-turbo"
+    description: |
+      Model to use for simple tasks like summarizing diff on a file.
+      When multiple models are specified in separate lines, they will be used in order of priority from top to bottom.
+      If a model is unavailable, the next model in the list will be used as a fallback.
+    default: |
+      openai/gpt-3.5-turbo
   model:
     required: true
-    description: "Model to use for review tasks."
-    default: "openai/gpt-4o"
+    description: |
+      Model to use for review tasks.
+      When multiple models are specified in separate lines, they will be used in order of priority from top to bottom.
+      If a model is unavailable, the next model in the list will be used as a fallback.
+    default: |
+      openai/gpt-4o
   retries:
     required: false
     description:

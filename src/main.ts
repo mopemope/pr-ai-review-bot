@@ -29,8 +29,8 @@ const getOptions = () => {
     getBooleanInput("disable_release_notes"),
     getMultilineInput("path_filters"),
     getInput("system_prompt"),
-    getInput("summary_model"),
-    getInput("model"),
+    getMultilineInput("summary_model"),
+    getMultilineInput("model"),
     getInput("retries"),
     getInput("timeout_ms"),
     getInput("language"),
@@ -338,7 +338,7 @@ export async function run(): Promise<void> {
     const changes = await getChangedFiles(prContext, options, octokit)
 
     if (changes.length > 0) {
-      if (!options.disableReleaseNotes) {
+      if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
         // Generate and post a summary of the PR changes
         const summary = await reviewer.summarizeChanges({
           prContext,

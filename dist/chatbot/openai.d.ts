@@ -4,7 +4,10 @@ import { type ChatBot, type Message } from "./index.js";
 export declare class OpenAIClient implements ChatBot {
     private client;
     private options;
+    private fullModelName;
     private model;
+    private retries;
     constructor(modelName: string, options: Options);
+    getFullModelName(): string;
     create(ctx: PullRequestContext, prompts: Message[]): Promise<string>;
 }

@@ -3,16 +3,21 @@ import OpenAI from "openai"
 import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
 import { type ChatBot, type Message, getModelName } from "./index.js"
+import { sleep } from "openai/core.mjs"
 
 const apiKey = process.env.OPENAI_API_KEY || ""
 
 export class OpenAIClient implements ChatBot {
   private client: OpenAI
   private options: Options
+  private fullModelName: string
   private model: string
+  private retries: number
 
   constructor(modelName: string, options: Options) {
+    this.fullModelName = modelName
     this.model = getModelName(modelName)
+    this.retries = options.retries
     this.options = options
     this.client = new OpenAI({
       apiKey: apiKey
@@ -21,6 +26,10 @@ export class OpenAIClient implements ChatBot {
     if (this.options.debug) {
       debug(`Using model: ${modelName}`)
     }
+  }
+
+  getFullModelName(): string {
+    return this.fullModelName
   }
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {
@@ -38,7 +47,8 @@ export class OpenAIClient implements ChatBot {
         temperature: 0.1
         // max_tokens: 2000,
       })
-
+      // reset retries
+      this.retries = this.options.retries
       return response.choices[0]?.message?.content || ""
     } catch (error) {
       warning(
@@ -46,12 +56,13 @@ export class OpenAIClient implements ChatBot {
       )
 
       // Retry logic
-      if (this.options.retries > 0) {
-        this.options.retries--
+      if (this.retries > 0) {
+        this.retries--
+        await sleep(1000) // Wait for 1 second before retrying
         return this.create(ctx, prompts)
       }
 
-      return "Failed to review this file due to an API error."
+      throw new Error("Failed to review this file due to an API error.")
     }
   }
 }
