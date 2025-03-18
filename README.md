@@ -56,10 +56,15 @@ jobs:
       - uses: mopemope/pr-ai-review-bot@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
-          model: openai/gpt-google/gemini-2.0-flash-exp
-          summary_model: google/gemini-2.0-flash-exp
+          model: |
+            google/gemini-2.0-flash-exp
+            openai/gpt-4o
+          summary_model: |
+            google/gemini-2.0-flash-exp
+            openai/gpt-3.5-turbo
           use_file_content: true
 ```
 
@@ -151,6 +156,37 @@ summary_model: google/gemini-1.5-pro
 model: anthropic/claude-3-sonnet
 summary_model: anthropic/claude-3-haiku
 ```
+
+### API Keys
+
+Make sure to provide the appropriate API keys as environment variables:
+
+- OpenAI: `OPENAI_API_KEY`
+- Google Gemini: `GEMINI_API_KEY`
+- Anthropic Claude: `ANTHROPIC_API_KEY`
+
+## Model Fallback Mechanism
+
+This action includes a robust model fallback system to ensure reliability in
+case of API failures or model-specific issues:
+
+1. If the primary model fails (e.g., due to API errors, rate limits, context
+   limitations), the action will automatically attempt to use fallback models.
+2. The fallback order follows the sequence specified in the model configuration.
+
+### How Fallback Works
+
+- **API Errors**: If an API call fails with a specific model, the system will
+  retry with an alternative model after the configured number of retries.
+- **Context Limitations**: If a large review exceeds the context window of the
+  primary model, a model with larger context capacity may be used if available.
+- **Provider Issues**: If a specific provider is experiencing downtime, the
+  system can switch to alternative providers if multiple API keys are
+  configured.
+
+This mechanism ensures that your PR reviews continue to function even when
+specific models or providers experience temporary issues, maximizing the
+reliability of your automated review workflow.
 
 ### API Keys
 
