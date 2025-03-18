@@ -23,6 +23,27 @@ Code indentation is inappropriate. Please fix it.`
   })
 
   /**
+   * Tests that comments with invalid line ranges (startLine > endLine) are skipped
+   */
+  it("skips comments with invalid line ranges", () => {
+    const input = `15-10:
+This has an invalid line range and should be skipped.
+---
+20-25:
+This has a valid line range and should be included.`
+
+    const result = parseReviewComment(input)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      startLine: 20,
+      endLine: 25,
+      comment: "This has a valid line range and should be included.",
+      isLGTM: false
+    })
+  })
+
+  /**
    * Tests if multiple comments are parsed correctly
    */
   it("correctly parses multiple comments", () => {
@@ -134,5 +155,72 @@ Inappropriate variable name. Please use more descriptive names.
     expect(result[0].comment).toContain(
       "+        const calculatedTotal = calculateValue();"
     )
+  })
+
+  /**
+   * Tests that comments with non-numeric line numbers are skipped
+   */
+  it("skips comments with non-numeric line numbers", () => {
+    const input = `abc-15:
+This has invalid line numbers and should be skipped.
+---
+20-xyz:
+This also has invalid line numbers and should be skipped.
+---
+20-25:
+This has valid line numbers and should be included.`
+
+    const result = parseReviewComment(input)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      startLine: 20,
+      endLine: 25,
+      comment: "This has valid line numbers and should be included.",
+      isLGTM: false
+    })
+  })
+
+  /**
+   * Tests that line ranges without comment text are skipped
+   */
+  it("skips line ranges without comment text", () => {
+    const input = `10-15:
+---
+20-25:
+Valid comment with text
+---
+30-35:`
+
+    const result = parseReviewComment(input)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      startLine: 20,
+      endLine: 25,
+      comment: "Valid comment with text",
+      isLGTM: false
+    })
+  })
+
+  /**
+   * Tests that LGTM detection is case-insensitive
+   */
+  it("identifies LGTM flag case-insensitively", () => {
+    const input = `10-15:
+lgtm! Lowercase is fine
+---
+20-25:
+LGTM! Uppercase works too
+---
+30-35:
+LgTm! Mixed case is also good`
+
+    const result = parseReviewComment(input)
+
+    expect(result).toHaveLength(3)
+    expect(result[0].isLGTM).toBe(true)
+    expect(result[1].isLGTM).toBe(true)
+    expect(result[2].isLGTM).toBe(true)
   })
 })

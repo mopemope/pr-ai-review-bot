@@ -183,7 +183,7 @@ export const parseReviewComment = (reviewComment: string): ReviewComment[] => {
 
   for (const section of sections) {
     // Extract line numbers and comment content
-    const match = section.trim().match(/^(\d+)-(\d+):?\s*([\s\S]+)$/)
+    const match = section.trim().match(/^(\d+)-(\d+):?\s*([\s\S]+\S)$/)
 
     if (match) {
       const startLine = Number.parseInt(match[1], 10)
@@ -193,12 +193,15 @@ export const parseReviewComment = (reviewComment: string): ReviewComment[] => {
       // Check if comment contains LGTM
       const isLGTM = comment.toLowerCase().includes("lgtm!")
 
-      result.push({
-        startLine,
-        endLine,
-        comment,
-        isLGTM
-      })
+      // Only add the review if the line range is valid (startLine <= endLine)
+      if (startLine <= endLine) {
+        result.push({
+          startLine,
+          endLine,
+          comment,
+          isLGTM
+        })
+      }
     }
   }
 
