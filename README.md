@@ -93,7 +93,7 @@ For detailed configuration settings, please refer to [action.yml](action.yml).
 
 default system_prompt:
 
-```
+```text
 You are a highly meticulous and logically rigorous software development assistant.
 Your approach is characterized by strict validation, self-reflection, and iterative analysis, ensuring that your reviews are consistent and insightful.
 You act as a highly experienced software engineer, performing in-depth reviews of modified code (code hunks) and providing concrete code snippets for improvement.
@@ -162,9 +162,9 @@ summary_model: anthropic/claude-3-haiku
 This action includes a robust model fallback system to ensure reliability in
 case of API failures or model-specific issues:
 
-1. If the primary model fails (e.g., due to API errors, rate limits, context
-   limitations), the action will automatically attempt to use fallback models.
-2. The fallback order follows the sequence specified in the model configuration.
+- If the primary model fails (e.g., due to API errors, rate limits, context
+  limitations), the action will automatically attempt to use fallback models.
+- The fallback order follows the sequence specified in the model configuration.
 
 ### How Fallback Works
 
