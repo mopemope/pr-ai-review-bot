@@ -11,8 +11,10 @@ export class ClaudeClient implements ChatBot {
   private client: Anthropic
   private model: string
   private options: Options
+  private fullModelName: string
 
   constructor(modelName: string, options: Options) {
+    this.fullModelName = modelName
     this.options = options
     this.client = new Anthropic({
       apiKey: apiKey
@@ -23,6 +25,10 @@ export class ClaudeClient implements ChatBot {
       debug("Claude client initialized")
       debug(`Using model: ${this.model}`)
     }
+  }
+
+  getFullModelName(): string {
+    return this.fullModelName
   }
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {

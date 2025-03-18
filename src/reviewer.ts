@@ -1,4 +1,4 @@
-import { debug, warning } from "@actions/core"
+import { debug, info, warning } from "@actions/core"
 import {
   type ChatBot,
   createChatBotFromModel,
@@ -73,7 +73,15 @@ export class Reviewer {
 
   fallbackSummaryBot(): void {
     if (this.summaryBot.length > 0) {
-      this.summaryBot.pop()
+      const old = this.summaryBot.pop()
+      const next = this.getSummaryBot()
+      if (next) {
+        info(
+          `Fallback summary bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`
+        )
+      } else {
+        info(`No more summary bot available`)
+      }
     }
   }
 
@@ -85,7 +93,15 @@ export class Reviewer {
 
   fallbackReviewBot(): void {
     if (this.reviewBot.length > 0) {
-      this.reviewBot.pop()
+      const old = this.reviewBot.pop()
+      const next = this.getReviewBot()
+      if (next) {
+        info(
+          `Fallback review bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`
+        )
+      } else {
+        info(`No more review bot available`)
+      }
     }
   }
 

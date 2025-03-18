@@ -10,8 +10,10 @@ export class GeminiClient implements ChatBot {
   private client: GoogleGenerativeAI
   private model: GenerativeModel
   private options: Options
+  private fullModelName: string
 
   constructor(modelName: string, options: Options) {
+    this.fullModelName = modelName
     this.options = options
     this.client = new GoogleGenerativeAI(apiKey)
     const geminiModel = getModelName(modelName)
@@ -26,6 +28,10 @@ export class GeminiClient implements ChatBot {
       debug("Gemini client initialized")
       debug(`Using model: ${modelName}`)
     }
+  }
+
+  getFullModelName(): string {
+    return this.fullModelName
   }
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {

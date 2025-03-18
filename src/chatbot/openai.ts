@@ -9,9 +9,11 @@ const apiKey = process.env.OPENAI_API_KEY || ""
 export class OpenAIClient implements ChatBot {
   private client: OpenAI
   private options: Options
+  private fullModelName: string
   private model: string
 
   constructor(modelName: string, options: Options) {
+    this.fullModelName = modelName
     this.model = getModelName(modelName)
     this.options = options
     this.client = new OpenAI({
@@ -21,6 +23,10 @@ export class OpenAIClient implements ChatBot {
     if (this.options.debug) {
       debug(`Using model: ${modelName}`)
     }
+  }
+
+  getFullModelName(): string {
+    return this.fullModelName
   }
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {
