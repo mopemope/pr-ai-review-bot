@@ -35,6 +35,10 @@ jobs:
         with:
           debug: true
           use_file_content: false
-          summary_model: "anthropic/claude-3-5-haiku-latest"
-          model: "anthropic/claude-3-7-sonnet-latest"
+          summary_model: |
+            anthropic/claude-3-5-haiku-latest
+            google/gemini-2.0-flash-lite
+          model: |
+            anthropic/claude-3-7-sonnet-latest
+            google/gemini-2.0-flash-exp
           language: "japanese"
