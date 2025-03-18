@@ -73,7 +73,7 @@ export class Reviewer {
 
   fallbackSummaryBot(): void {
     if (this.summaryBot.length > 0) {
-      const old = this.summaryBot.pop()
+      const old = this.summaryBot.shift()
       const next = this.getSummaryBot()
       if (next) {
         info(
@@ -93,7 +93,7 @@ export class Reviewer {
 
   fallbackReviewBot(): void {
     if (this.reviewBot.length > 0) {
-      const old = this.reviewBot.pop()
+      const old = this.reviewBot.shift()
       const next = this.getReviewBot()
       if (next) {
         info(
