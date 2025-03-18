@@ -47825,7 +47825,7 @@ async function run() {
         // Fetch files changed in the pull request with diff information
         const changes = await getChangedFiles(prContext, options, octokit);
         if (changes.length > 0) {
-            if (!options.disableReleaseNotes) {
+            if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
                 // Generate and post a summary of the PR changes
                 const summary = await reviewer.summarizeChanges({
                     prContext,
