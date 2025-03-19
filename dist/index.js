@@ -47536,7 +47536,7 @@ class Reviewer {
                 }
                 const reviews = parseReviewComment(reviewComment);
                 for (const review of reviews) {
-                    coreExports.debug(`Review comment: ${diff.filename} : ${review}`);
+                    coreExports.debug(`Review comment: ${diff.filename} : ${review.startLine}-${review.endLine}\n${review.comment}`);
                     if (review.isLGTM) {
                         continue;
                     }
