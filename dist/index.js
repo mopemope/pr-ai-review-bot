@@ -35854,6 +35854,7 @@ const parsePatch = ({ filename, patch }) => {
     if (!patch) {
         return results;
     }
+    coreExports.debug(`parsePatch: ${filename} ${patch}`);
     const lines = patch.split("\n");
     let i = 0;
     while (i < lines.length) {
