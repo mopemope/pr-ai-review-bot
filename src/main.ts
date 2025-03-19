@@ -176,7 +176,7 @@ const getChangedFiles = async (
         prContext.owner,
         prContext.repo,
         file.filename,
-        pull_request.head.sha
+        file.sha
       )
       //debug(
       //  `Fetched content for ${file.filename} from commit ${pull_request.head.sha}\n ${changeFile.content}\n`

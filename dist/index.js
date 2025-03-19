@@ -47533,9 +47533,9 @@ class Reviewer {
                     coreExports.warning(`Failed to generate review comment for ${diff.filename}#${diff.index}: ${error}`);
                     continue;
                 }
-                coreExports.debug(`Review comment: ${diff.filename} : ${reviewComment}`);
                 const reviews = parseReviewComment(reviewComment);
                 for (const review of reviews) {
+                    coreExports.debug(`Review comment: ${diff.filename}: sha:${change.sha}\n${review.startLine}-${review.endLine}\n${review.comment}`);
                     if (review.isLGTM) {
                         continue;
                     }
@@ -47699,7 +47699,7 @@ const getChangedFiles = async (prContext, options, octokit) => {
         };
         // Fetch file content from the head commit
         if (pull_request?.head?.sha && options.useFileContent) {
-            changeFile.content = await getFileContent(octokit, prContext.owner, prContext.repo, file.filename, pull_request.head.sha);
+            changeFile.content = await getFileContent(octokit, prContext.owner, prContext.repo, file.filename, file.sha);
             //debug(
             //  `Fetched content for ${file.filename} from commit ${pull_request.head.sha}\n ${changeFile.content}\n`
             //)
