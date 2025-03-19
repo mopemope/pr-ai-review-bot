@@ -33303,18 +33303,17 @@ ${body}`);
      * Creates a review comment on a specific file in a pull request.
      *
      * @param filename - The path of the file to comment on
-     * @param sha - The commit SHA to place the comment on
      * @param review - The review comment object containing comment text and line information
      * @returns A Promise that resolves when the comment is successfully created
      */
-    async createReviewComment(filename, sha, review) {
+    async createReviewComment(filename, review) {
         // Define base request and conditional parameters separately
         // Set the common parameters needed for all review comments
         const baseRequest = {
             owner: this.prContext.owner,
             repo: this.prContext.repo,
             pull_number: this.prContext.pullRequestNumber,
-            commit_id: sha, // The commit SHA to place the comment on
+            commit_id: this.prContext.headCommitId, // The commit SHA to place the comment on
             path: filename, // The file path where the comment should appear
             body: `${REVIEW_START_TAG}\n\n${review.comment}\n\n${REVIEW_END_TAG}` // The actual comment content
         };
@@ -47542,7 +47541,7 @@ class Reviewer {
                     }
                     if (!this.options.localAction) {
                         try {
-                            await this.commenter.createReviewComment(change.filename, change.sha, review);
+                            await this.commenter.createReviewComment(change.filename, review);
                         }
                         catch (error) {
                             coreExports.warning(`Failed to post review comment for ${diff.filename}#${diff.index}: ${error}`);

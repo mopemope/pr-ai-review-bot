@@ -240,11 +240,7 @@ export class Reviewer {
           }
           if (!this.options.localAction) {
             try {
-              await this.commenter.createReviewComment(
-                change.filename,
-                change.sha,
-                review
-              )
+              await this.commenter.createReviewComment(change.filename, review)
             } catch (error) {
               warning(
                 `Failed to post review comment for ${diff.filename}#${diff.index}: ${error}`
