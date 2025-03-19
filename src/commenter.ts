@@ -482,9 +482,13 @@ ${body}`
    * Includes the commit summary and a collapsible list of changed files.
    *
    * @param changeFiles - Array of files changed in the pull request
+   * @param reviews - Array of review comments associated with the pull request
    * @returns A Promise that resolves when the summary comment is created or updated
    */
-  async postPullRequestSummary(changeFiles: ChangeFile[]) {
+  async postPullRequestSummary(
+    changeFiles: ChangeFile[],
+    reviews: ReviewComment[]
+  ) {
     const mode = this.prContext.summaryCommentId ? "update" : "create"
 
     debug(
@@ -512,11 +516,22 @@ ${files}
 
 </details>`
 
+    const rawReviews = reviews
+      .map((review) => {
+        return `${review.filename} ${review.startLine}-${review.endLine}\n${review.comment}\n`
+      })
+      .join("\n")
+
     const message = `
 Pull Request Summary
 
 ${commitMsg}
 ${reviewFiles}
+
+<!-- Raw reviews
+${rawReviews} 
+-->
+
     `
 
     await this.comment({

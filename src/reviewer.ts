@@ -11,6 +11,7 @@ import type { Prompts } from "./prompts.js"
 import type { ChangeFile } from "./types.js"
 
 export type ReviewComment = {
+  filename: string
   startLine: number
   endLine: number
   comment: string
@@ -207,7 +208,9 @@ export class Reviewer {
     prompts: Prompts
     changes: ChangeFile[]
   }) {
+    const results: ReviewComment[] = []
     for (const change of changes) {
+      const filename = change.filename
       for (const diff of change.diff) {
         // Create a prompt specific to this file's diff
         const reviewPrompt = prompts.renderReviewPrompt(prContext, change, diff)
@@ -229,7 +232,7 @@ export class Reviewer {
           continue
         }
 
-        const reviews = parseReviewComment(reviewComment)
+        const reviews = parseReviewComment(filename, reviewComment)
 
         for (const review of reviews) {
           debug(
@@ -249,8 +252,11 @@ export class Reviewer {
           }
         }
         info(`End review: ${diff.filename}#${diff.index}`)
+        // Collect all review comments
+        results.push(...reviews)
       }
     }
+    return results
   }
 }
 
@@ -259,10 +265,14 @@ export class Reviewer {
  * The function splits the comment by "---" separators and extracts line numbers
  * and comment content for each section. Comments containing "LGTM!" are flagged.
  *
+ * @param filename - The name of the file being reviewed
  * @param reviewComment - The raw review comment string to parse
  * @returns Array of ReviewComment objects containing structured review data
  */
-export const parseReviewComment = (reviewComment: string): ReviewComment[] => {
+export const parseReviewComment = (
+  filename: string,
+  reviewComment: string
+): ReviewComment[] => {
   // Return empty array for empty comments
   if (!reviewComment || reviewComment.trim().length === 0) {
     return []
@@ -289,6 +299,7 @@ export const parseReviewComment = (reviewComment: string): ReviewComment[] => {
       // Only add the review if the line range is valid (startLine <= endLine)
       if (startLine <= endLine) {
         result.push({
+          filename,
           startLine,
           endLine,
           comment,

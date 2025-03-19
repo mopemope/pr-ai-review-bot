@@ -114,11 +114,17 @@ const getFileContent = async (
  * @returns Array of ChangeFile objects with parsed diff information
  * @throws Error if the commit information cannot be found
  */
-const getChangedFiles = async (
-  prContext: PullRequestContext,
-  options: Options,
+const getChangedFiles = async ({
+  prContext,
+  options,
+  octokit,
+  baseCommitId
+}: {
+  prContext: PullRequestContext
+  options: Options
   octokit: ReturnType<typeof getOctokit>
-): Promise<ChangeFile[]> => {
+  baseCommitId: string
+}): Promise<ChangeFile[]> => {
   const pull_request = context.payload.pull_request
 
   // Verify that the base commit SHA exists
@@ -126,15 +132,13 @@ const getChangedFiles = async (
     throw new Error("No commit id found")
   }
 
-  debug(
-    `getChangedFiles: ${prContext.lastReviewCommitId} ${prContext.headCommitId}`
-  )
+  debug(`getChangedFiles: ${baseCommitId} ${prContext.headCommitId}`)
 
   // Compare commits to find changes between the last reviewed commit and current head
   const targetBranchDiff = await octokit.rest.repos.compareCommits({
     owner: prContext.owner,
     repo: prContext.repo,
-    base: prContext.lastReviewCommitId,
+    base: baseCommitId,
     head: prContext.headCommitId
   })
 
@@ -147,7 +151,7 @@ const getChangedFiles = async (
 
   for (const file of targetBranchDiff.data.files) {
     // Skip files without patch information (binary files or files with no changes)
-    if (!file.patch) {
+    if (!file.patch || file.patch === "") {
       continue
     }
     // Skip files that don't match the configured path filters
@@ -169,8 +173,7 @@ const getChangedFiles = async (
       diff: []
     }
 
-    // Fetch file content from the head commit
-    if (pull_request?.head?.sha && options.useFileContent) {
+    if (options.useFileContent) {
       changeFile.content = await getFileContent(
         octokit,
         prContext.owner,
@@ -182,6 +185,10 @@ const getChangedFiles = async (
       //  `Fetched content for ${file.filename} from commit ${pull_request.head.sha}\n ${changeFile.content}\n`
       //)
     }
+
+    debug(
+      `getChangedFiles: ${file.filename} ${file.status} ${file.changes} ${file.patch}`
+    )
 
     const results = parsePatch({
       filename: file.filename,
@@ -202,74 +209,6 @@ const getChangedFiles = async (
     changes.push(changeFile)
   }
 
-  return changes
-}
-
-/**
- * Fetches all changed files in a pull request from base to head commit.
- * Retrieves the diff between base and head commits, processes the files that have been changed,
- * and filters them based on configured path filters.
- * Unlike `getChangedFiles`, this function retrieves all changes from the base commit rather than
- * just changes since the last review.
- *
- * @param prContext - Pull request context containing repository and commit information
- * @param options - Configuration options for the reviewer, including path filters
- * @param octokit - GitHub API client instance
- * @returns Array of ChangeFile objects representing all files changed in the PR
- * @throws Error if the commit information cannot be found
- */
-const getAllChangedFiles = async (
-  prContext: PullRequestContext,
-  options: Options,
-  octokit: ReturnType<typeof getOctokit>
-): Promise<ChangeFile[]> => {
-  const pull_request = context.payload.pull_request
-
-  // Verify that the base commit SHA exists
-  if (!pull_request?.base?.sha) {
-    throw new Error("No commit id found")
-  }
-
-  // Compare commits to find changes between the last reviewed commit and current head
-  const targetBranchDiff = await octokit.rest.repos.compareCommits({
-    owner: prContext.owner,
-    repo: prContext.repo,
-    base: prContext.baseCommitId,
-    head: prContext.headCommitId
-  })
-
-  const changes: ChangeFile[] = []
-
-  // Return empty array if no files were changed
-  if (!targetBranchDiff.data.files) {
-    return changes
-  }
-
-  for (const file of targetBranchDiff.data.files) {
-    // Skip files without patch information (binary files or files with no changes)
-    if (!file.patch) {
-      continue
-    }
-    // Skip files that don't match the configured path filters
-    if (!options.checkPath(file.filename)) {
-      continue
-    }
-
-    const changeFile: ChangeFile = {
-      filename: file.filename,
-      sha: file.sha,
-      status: file.status,
-      additions: file.additions,
-      deletions: file.deletions,
-      changes: file.changes,
-      url: file.blob_url,
-      patch: file.patch,
-      summary: "",
-      content: "",
-      diff: []
-    }
-    changes.push(changeFile)
-  }
   return changes
 }
 
@@ -336,10 +275,22 @@ export async function run(): Promise<void> {
     // Create reviewer instance with GitHub client and options
     const reviewer = new Reviewer(commenter, options)
 
-    const allChanges = await getAllChangedFiles(prContext, options, octokit)
+    const allChanges = await getChangedFiles({
+      prContext,
+      options,
+      octokit,
+      baseCommitId: prContext.baseCommitId
+    })
+    // Check if there are any changes in the PR
     // Fetch files changed in the pull request with diff information
-    const changes = await getChangedFiles(prContext, options, octokit)
+    const changes = await getChangedFiles({
+      prContext,
+      options,
+      octokit,
+      baseCommitId: prContext.lastReviewCommitId
+    })
 
+    const reviews = []
     if (changes.length > 0) {
       if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
         info("Generating a new summary comment.")
@@ -347,7 +298,7 @@ export async function run(): Promise<void> {
         const summary = await reviewer.summarizeChanges({
           prContext,
           prompts,
-          changes
+          changes: allChanges
         })
 
         debug(`Summary changeset: ${summary}`)
@@ -361,17 +312,18 @@ export async function run(): Promise<void> {
 
       if (!options.disableReview) {
         // Review code changes and post feedback comments
-        await reviewer.reviewChanges({
+        const res = await reviewer.reviewChanges({
           prContext,
           prompts,
           changes
         })
+        reviews.push(...res)
       }
     } else {
       info("No changes found in the PR. Skipping review.")
     }
 
-    await commenter.postPullRequestSummary(allChanges)
+    await commenter.postPullRequestSummary(allChanges, reviews)
     info("Posted pull request summary")
   } catch (error) {
     // Fail the workflow run if an error occurs

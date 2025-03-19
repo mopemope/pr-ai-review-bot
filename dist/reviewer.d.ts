@@ -5,6 +5,7 @@ import type { Options } from "./option.js";
 import type { Prompts } from "./prompts.js";
 import type { ChangeFile } from "./types.js";
 export type ReviewComment = {
+    filename: string;
     startLine: number;
     endLine: number;
     comment: string;
@@ -77,14 +78,15 @@ export declare class Reviewer {
         prContext: PullRequestContext;
         prompts: Prompts;
         changes: ChangeFile[];
-    }): Promise<void>;
+    }): Promise<ReviewComment[]>;
 }
 /**
  * Parses the review comment string and extracts structured review data.
  * The function splits the comment by "---" separators and extracts line numbers
  * and comment content for each section. Comments containing "LGTM!" are flagged.
  *
+ * @param filename - The name of the file being reviewed
  * @param reviewComment - The raw review comment string to parse
  * @returns Array of ReviewComment objects containing structured review data
  */
-export declare const parseReviewComment: (reviewComment: string) => ReviewComment[];
+export declare const parseReviewComment: (filename: string, reviewComment: string) => ReviewComment[];
