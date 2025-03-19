@@ -1,3 +1,5 @@
+import { debug } from "@actions/core"
+
 export type Hunk = {
   filename: string
   startLine: number
@@ -203,6 +205,7 @@ export const parsePatch = ({
     return results
   }
 
+  debug(`parsePatch: ${filename} ${patch}`)
   const lines = patch.split("\n")
   let i = 0
 
