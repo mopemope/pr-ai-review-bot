@@ -11,10 +11,11 @@ describe("parseReviewComment", () => {
     const input = `10-15:
 Code indentation is inappropriate. Please fix it.`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
+      filename: "filename",
       startLine: 10,
       endLine: 15,
       comment: "Code indentation is inappropriate. Please fix it.",
@@ -32,10 +33,11 @@ This has an invalid line range and should be skipped.
 20-25:
 This has a valid line range and should be included.`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
+      filename: "filename",
       startLine: 20,
       endLine: 25,
       comment: "This has a valid line range and should be included.",
@@ -53,16 +55,18 @@ Code indentation is inappropriate. Please fix it.
 20-25:
 Variable name is unclear. Please consider a more descriptive name.`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(2)
     expect(result[0]).toEqual({
+      filename: "filename",
       startLine: 10,
       endLine: 15,
       comment: "Code indentation is inappropriate. Please fix it.",
       isLGTM: false
     })
     expect(result[1]).toEqual({
+      filename: "filename",
       startLine: 20,
       endLine: 25,
       comment:
@@ -81,7 +85,7 @@ LGTM! Code is clean and easy to understand.
 20-25:
 This implementation has room for improvement.`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(2)
     expect(result[0].isLGTM).toBe(true)
@@ -101,7 +105,7 @@ in detail.
 20-25:
 Another comment`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(2)
     expect(result[0].comment).toBe(
@@ -114,8 +118,8 @@ Another comment`
    * Tests if empty input returns an empty array
    */
   it("returns empty array for empty input", () => {
-    expect(parseReviewComment("")).toEqual([])
-    expect(parseReviewComment("   ")).toEqual([])
+    expect(parseReviewComment("filename", "")).toEqual([])
+    expect(parseReviewComment("filename", "   ")).toEqual([])
   })
 
   /**
@@ -130,7 +134,7 @@ Invalid format
 20-25:
 Another comment`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(2)
     expect(result[0].startLine).toBe(10)
@@ -148,7 +152,7 @@ Inappropriate variable name. Please use more descriptive names.
 +        const calculatedTotal = calculateValue();
 \`\`\``
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(1)
     expect(result[0].comment).toContain("```diff")
@@ -170,10 +174,11 @@ This also has invalid line numbers and should be skipped.
 20-25:
 This has valid line numbers and should be included.`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
+      filename: "filename",
       startLine: 20,
       endLine: 25,
       comment: "This has valid line numbers and should be included.",
@@ -192,10 +197,11 @@ Valid comment with text
 ---
 30-35:`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(1)
     expect(result[0]).toEqual({
+      filename: "filename",
       startLine: 20,
       endLine: 25,
       comment: "Valid comment with text",
@@ -216,7 +222,7 @@ LGTM! Uppercase works too
 30-35:
 LgTm! Mixed case is also good`
 
-    const result = parseReviewComment(input)
+    const result = parseReviewComment("filename", input)
 
     expect(result).toHaveLength(3)
     expect(result[0].isLGTM).toBe(true)

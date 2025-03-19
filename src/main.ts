@@ -286,6 +286,7 @@ export async function run(): Promise<void> {
       baseCommitId: prContext.lastReviewCommitId
     })
 
+    const reviews = []
     if (changes.length > 0) {
       if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
         info("Generating a new summary comment.")
@@ -307,17 +308,18 @@ export async function run(): Promise<void> {
 
       if (!options.disableReview) {
         // Review code changes and post feedback comments
-        await reviewer.reviewChanges({
+        const res = await reviewer.reviewChanges({
           prContext,
           prompts,
           changes
         })
+        reviews.push(...res)
       }
     } else {
       info("No changes found in the PR. Skipping review.")
     }
 
-    await commenter.postPullRequestSummary(allChanges)
+    await commenter.postPullRequestSummary(allChanges, reviews)
     info("Posted pull request summary")
   } catch (error) {
     // Fail the workflow run if an error occurs
