@@ -302,6 +302,7 @@ Anonymous User
       // Mock file diff with proper Hunk properties
       const mockFileDiff: FileDiff = {
         filename: "src/auth.ts",
+        index: 1,
         from: {
           filename: "src/auth.ts",
           startLine: 1,
@@ -363,6 +364,7 @@ Anonymous User
       // Mock file diff with all required properties
       const mockFileDiff: FileDiff = {
         filename: "src/example.ts",
+        index: 1,
         from: {
           filename: "src/example.ts",
           startLine: 1,
