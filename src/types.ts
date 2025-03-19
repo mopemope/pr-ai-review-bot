@@ -16,6 +16,7 @@ export type ChangeFile = {
 
 export type FileDiff = {
   filename: string
+  index: number
   from: Hunk
   to: Hunk
 }

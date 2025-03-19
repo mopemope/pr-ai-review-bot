@@ -410,9 +410,12 @@ ${body}`
     // Send the API request to create the review comment and get the result
     const reviewCommentResult =
       await this.octokit.rest.pulls.createReviewComment(requestParams)
-    if (reviewCommentResult.status === 201) {
+    if (reviewCommentResult.status !== 201) {
       // Comment was successfully created with 201 Created status
       // debug(`Comment created: $reviewCommentResult.data.html_url`);
+      warning(
+        `Failed to create review comment\nrequest: ${JSON.stringify(requestParams, null, 2)}\nstatus: ${reviewCommentResult.status}`
+      )
     }
   }
 
