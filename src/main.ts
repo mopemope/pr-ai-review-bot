@@ -176,7 +176,7 @@ const getChangedFiles = async (
         prContext.owner,
         prContext.repo,
         file.filename,
-        pull_request.head.sha
+        file.sha
       )
       //debug(
       //  `Fetched content for ${file.filename} from commit ${pull_request.head.sha}\n ${changeFile.content}\n`
@@ -188,9 +188,12 @@ const getChangedFiles = async (
       patch: file.patch
     })
 
+    let index: number = 0
     for (const result of results) {
+      index++
       const diff: FileDiff = {
         filename: file.filename,
+        index,
         from: result.from,
         to: result.to
       }
@@ -339,6 +342,7 @@ export async function run(): Promise<void> {
 
     if (changes.length > 0) {
       if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
+        info("Generating a new summary comment.")
         // Generate and post a summary of the PR changes
         const summary = await reviewer.summarizeChanges({
           prContext,
@@ -351,6 +355,7 @@ export async function run(): Promise<void> {
         if (!options.localAction) {
           // Update the PR description with the generated summary
           await commenter.updateDescription(summary)
+          info(`Updated PR description with summary: ${summary}`)
         }
       }
 
@@ -367,6 +372,7 @@ export async function run(): Promise<void> {
     }
 
     await commenter.postPullRequestSummary(allChanges)
+    info("Posted pull request summary")
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) {

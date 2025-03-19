@@ -33329,7 +33329,12 @@ ${body}`);
             };
         // Send the API request to create the review comment and get the result
         const reviewCommentResult = await this.octokit.rest.pulls.createReviewComment(requestParams);
-        if (reviewCommentResult.status === 201) ;
+        coreExports.debug(`review comment result: ${JSON.stringify(reviewCommentResult, null, 2)} ${JSON.stringify(requestParams, null, 2)}`);
+        if (reviewCommentResult.status !== 201) {
+            // Comment was successfully created with 201 Created status
+            // debug(`Comment created: $reviewCommentResult.data.html_url`);
+            coreExports.warning(`Failed to create review comment\nrequest: ${JSON.stringify(requestParams, null, 2)}\nstatus: ${reviewCommentResult.status}`);
+        }
     }
     /**
      * Extracts the original description by removing any content that was
@@ -47512,10 +47517,11 @@ class Reviewer {
     async reviewChanges({ prContext, prompts, changes }) {
         for (const change of changes) {
             for (const diff of change.diff) {
+                // Create a prompt specific to this file's diff
                 const reviewPrompt = prompts.renderReviewPrompt(prContext, change, diff);
                 // Debug the review prompt
                 // debug(`Review prompt: ${JSON.stringify(reviewPrompt, null, 2)}`)
-                coreExports.debug(`Start review: ${diff.filename}`);
+                coreExports.info(`Start review: ${diff.filename}#${diff.index}`);
                 let reviewComment = undefined;
                 try {
                     reviewComment = await this.createReview(prContext, reviewPrompt);
@@ -47524,12 +47530,12 @@ class Reviewer {
                 }
                 catch (error) {
                     // Handle error in review comment generation
-                    coreExports.warning(`Failed to generate review comment for ${change.filename}: ${error}`);
+                    coreExports.warning(`Failed to generate review comment for ${diff.filename}#${diff.index}: ${error}`);
                     continue;
                 }
-                coreExports.debug(`Review comment: ${diff.filename} : ${reviewComment}`);
                 const reviews = parseReviewComment(reviewComment);
                 for (const review of reviews) {
+                    coreExports.debug(`Review comment: ${diff.filename}: sha:${change.sha}\n${review.startLine}-${review.endLine}\n${review.comment}`);
                     if (review.isLGTM) {
                         continue;
                     }
@@ -47538,10 +47544,11 @@ class Reviewer {
                             await this.commenter.createReviewComment(change.filename, review);
                         }
                         catch (error) {
-                            coreExports.warning(`Failed to post review comment for ${change.filename}: ${error}`);
+                            coreExports.warning(`Failed to post review comment for ${diff.filename}#${diff.index}: ${error}`);
                         }
                     }
                 }
+                coreExports.info(`End review: ${diff.filename}#${diff.index}`);
             }
         }
     }
@@ -47692,7 +47699,7 @@ const getChangedFiles = async (prContext, options, octokit) => {
         };
         // Fetch file content from the head commit
         if (pull_request?.head?.sha && options.useFileContent) {
-            changeFile.content = await getFileContent(octokit, prContext.owner, prContext.repo, file.filename, pull_request.head.sha);
+            changeFile.content = await getFileContent(octokit, prContext.owner, prContext.repo, file.filename, file.sha);
             //debug(
             //  `Fetched content for ${file.filename} from commit ${pull_request.head.sha}\n ${changeFile.content}\n`
             //)
@@ -47701,9 +47708,12 @@ const getChangedFiles = async (prContext, options, octokit) => {
             filename: file.filename,
             patch: file.patch
         });
+        let index = 0;
         for (const result of results) {
+            index++;
             const diff = {
                 filename: file.filename,
+                index,
                 from: result.from,
                 to: result.to
             };
@@ -47826,6 +47836,7 @@ async function run() {
         const changes = await getChangedFiles(prContext, options, octokit);
         if (changes.length > 0) {
             if (!options.disableReleaseNotes && !prContext.summaryCommentId) {
+                coreExports.info("Generating a new summary comment.");
                 // Generate and post a summary of the PR changes
                 const summary = await reviewer.summarizeChanges({
                     prContext,
@@ -47836,6 +47847,7 @@ async function run() {
                 if (!options.localAction) {
                     // Update the PR description with the generated summary
                     await commenter.updateDescription(summary);
+                    coreExports.info(`Updated PR description with summary: ${summary}`);
                 }
             }
             if (!options.disableReview) {
@@ -47851,6 +47863,7 @@ async function run() {
             coreExports.info("No changes found in the PR. Skipping review.");
         }
         await commenter.postPullRequestSummary(allChanges);
+        coreExports.info("Posted pull request summary");
     }
     catch (error) {
         // Fail the workflow run if an error occurs

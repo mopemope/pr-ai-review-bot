@@ -209,11 +209,12 @@ export class Reviewer {
   }) {
     for (const change of changes) {
       for (const diff of change.diff) {
+        // Create a prompt specific to this file's diff
         const reviewPrompt = prompts.renderReviewPrompt(prContext, change, diff)
 
         // Debug the review prompt
         // debug(`Review prompt: ${JSON.stringify(reviewPrompt, null, 2)}`)
-        debug(`Start review: ${diff.filename}`)
+        info(`Start review: ${diff.filename}#${diff.index}`)
 
         let reviewComment: string | undefined = undefined
         try {
@@ -223,14 +224,17 @@ export class Reviewer {
         } catch (error) {
           // Handle error in review comment generation
           warning(
-            `Failed to generate review comment for ${change.filename}: ${error}`
+            `Failed to generate review comment for ${diff.filename}#${diff.index}: ${error}`
           )
           continue
         }
-        debug(`Review comment: ${diff.filename} : ${reviewComment}`)
+
         const reviews = parseReviewComment(reviewComment)
 
         for (const review of reviews) {
+          debug(
+            `Review comment: ${diff.filename}: sha:${change.sha}\n${review.startLine}-${review.endLine}\n${review.comment}`
+          )
           if (review.isLGTM) {
             continue
           }
@@ -239,11 +243,12 @@ export class Reviewer {
               await this.commenter.createReviewComment(change.filename, review)
             } catch (error) {
               warning(
-                `Failed to post review comment for ${change.filename}: ${error}`
+                `Failed to post review comment for ${diff.filename}#${diff.index}: ${error}`
               )
             }
           }
         }
+        info(`End review: ${diff.filename}#${diff.index}`)
       }
     }
   }
