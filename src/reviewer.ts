@@ -228,10 +228,11 @@ export class Reviewer {
           )
           continue
         }
-        debug(`Review comment: ${diff.filename} : ${reviewComment}`)
+
         const reviews = parseReviewComment(reviewComment)
 
         for (const review of reviews) {
+          debug(`Review comment: ${diff.filename} : ${review}`)
           if (review.isLGTM) {
             continue
           }

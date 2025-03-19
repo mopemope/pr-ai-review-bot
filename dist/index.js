@@ -47534,9 +47534,9 @@ class Reviewer {
                     coreExports.warning(`Failed to generate review comment for ${diff.filename}#${diff.index}: ${error}`);
                     continue;
                 }
-                coreExports.debug(`Review comment: ${diff.filename} : ${reviewComment}`);
                 const reviews = parseReviewComment(reviewComment);
                 for (const review of reviews) {
+                    coreExports.debug(`Review comment: ${diff.filename} : ${review}`);
                     if (review.isLGTM) {
                         continue;
                     }
