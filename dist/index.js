@@ -47721,6 +47721,7 @@ const getChangedFiles = async ({ prContext, options, octokit, baseCommitId }) =>
             //  `Fetched content for ${file.filename} from commit ${pull_request.head.sha}\n ${changeFile.content}\n`
             //)
         }
+        debug$2(`getChangedFiles: ${file.filename} ${file.status} ${file.changes} ${file.patch}`);
         const results = parsePatch({
             filename: file.filename,
             patch: file.patch

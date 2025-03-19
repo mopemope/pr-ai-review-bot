@@ -186,6 +186,10 @@ const getChangedFiles = async ({
       //)
     }
 
+    debug(
+      `getChangedFiles: ${file.filename} ${file.status} ${file.changes} ${file.patch}`
+    )
+
     const results = parsePatch({
       filename: file.filename,
       patch: file.patch
