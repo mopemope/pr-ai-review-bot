@@ -6,7 +6,6 @@ export declare class ClaudeClient implements ChatBot {
     private model;
     private options;
     private fullModelName;
-    private retries;
     constructor(modelName: string, options: Options);
     getFullModelName(): string;
     create(ctx: PullRequestContext, prompts: Message[]): Promise<string>;
