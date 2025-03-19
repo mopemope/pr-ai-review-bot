@@ -112,10 +112,11 @@ export declare class Commenter {
      * Creates a review comment on a specific file in a pull request.
      *
      * @param filename - The path of the file to comment on
+     * @param sha - The commit SHA to place the comment on
      * @param review - The review comment object containing comment text and line information
      * @returns A Promise that resolves when the comment is successfully created
      */
-    createReviewComment(filename: string, review: ReviewComment): Promise<void>;
+    createReviewComment(filename: string, sha: string, review: ReviewComment): Promise<void>;
     /**
      * Extracts the original description by removing any content that was
      * previously added between the defined tags.
