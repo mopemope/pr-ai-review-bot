@@ -412,7 +412,7 @@ ${body}`
       await this.octokit.rest.pulls.createReviewComment(requestParams)
 
     debug(
-      `review comment result: ${JSON.stringify(reviewCommentResult, null, 2)} ${JSON.stringify(requestParams, null, 2)}`
+      `review comment result: ${reviewCommentResult.status} ${JSON.stringify(requestParams, null, 2)}`
     )
 
     if (reviewCommentResult.status !== 201) {
