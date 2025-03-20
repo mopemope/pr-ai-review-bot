@@ -90,6 +90,7 @@ For detailed configuration settings, please refer to [action.yml](action.yml).
 | `language`                | response language                                                          | `en-US`                                                                     |
 | `comment_greeting`        | Greeting message for comments                                              | `Review bot comments:`                                                      |
 | `ignore_keywords`         | Keywords to skip review (one per line)                                     | `@review-bot: ignore`, `@review-bot: no-review`, `@review-bot: skip-review` |
+| `base_url`                | Specify the URL when using OpenAI-compatible API(OpenRouter)               | `""`                                                                        |
 
 default system_prompt:
 
@@ -132,7 +133,7 @@ name with provider prefix.
 ### Model Format
 
 Models are specified using the format: `provider/model_name` or simply
-`model_name` (defaults to OpenAI).
+`model_name` .
 
 ### Supported Providers
 
@@ -140,13 +141,17 @@ Models are specified using the format: `provider/model_name` or simply
   `gpt-3.5-turbo` ...
 - **Google Gemini**: `google/gemini-pro`, `google/gemini-1.5-pro` ...
 - **Anthropic Claude**: `anthropic/claude-3-haiku`, `anthropic/claude-3-sonnet`
-  ...
+- **OpenRouter**: `openrouter/deepseek/deepseek-chat:free`,
+  `openrouter/mistralai/mistral-small-3.1-24b-instruct:free` ...
+
+When using OpenRouter, please set the URL with the base_url option.
 
 ### Examples
 
 ```yaml
 # Using OpenAI model (explicit provider)
 model: openai/gpt-4o
+summary_model: openai/gpt-4o
 
 # Using Google Gemini model
 model: google/gemini-pro
@@ -155,6 +160,11 @@ summary_model: google/gemini-1.5-pro
 # Using Anthropic Claude model
 model: anthropic/claude-3-sonnet
 summary_model: anthropic/claude-3-haiku
+
+# OpenRouter
+model: openrouter/deepseek/deepseek-chat:free
+summary_model: openrouter/deepseek/deepseek-chat:free
+
 ```
 
 ## Model Fallback Mechanism
@@ -184,7 +194,7 @@ reliability of your automated review workflow.
 
 Make sure to provide the appropriate API keys as environment variables:
 
-- OpenAI: `OPENAI_API_KEY`
+- OpenAI(OpenRouter): `OPENAI_API_KEY`
 - Google Gemini: `GEMINI_API_KEY`
 - Anthropic Claude: `ANTHROPIC_API_KEY`
 
