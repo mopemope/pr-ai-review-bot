@@ -33329,7 +33329,7 @@ ${body}`);
             };
         // Send the API request to create the review comment and get the result
         const reviewCommentResult = await this.octokit.rest.pulls.createReviewComment(requestParams);
-        coreExports.debug(`review comment result: ${JSON.stringify(reviewCommentResult, null, 2)} ${JSON.stringify(requestParams, null, 2)}`);
+        coreExports.debug(`review comment result: ${reviewCommentResult.status} ${JSON.stringify(requestParams, null, 2)}`);
         if (reviewCommentResult.status !== 201) {
             // Comment was successfully created with 201 Created status
             // debug(`Comment created: $reviewCommentResult.data.html_url`);
@@ -35857,6 +35857,8 @@ const processChunk = (lines, startIndex, filename) => {
         i++;
         lineNo++;
     }
+    coreExports.info(`from content: ${fromContent.join("\n")}`);
+    coreExports.info(`to content: ${toContent.join("\n")}`);
     const result = {
         from: {
             filename,
@@ -47335,14 +47337,14 @@ class OpenAIClient {
     options;
     fullModelName;
     model;
-    retries;
     constructor(modelName, options) {
         this.fullModelName = modelName;
         this.model = getModelName(modelName);
-        this.retries = options.retries;
         this.options = options;
         this.client = new OpenAI({
-            apiKey: apiKey
+            apiKey: apiKey,
+            timeout: options.timeoutMS,
+            maxRetries: options.retries
         });
         if (this.options.debug) {
             coreExports.debug(`Using model: ${modelName}`);
@@ -47365,19 +47367,14 @@ class OpenAIClient {
                 ],
                 temperature: 0.1
                 // max_tokens: 2000,
+            }, {
+                timeout: this.options.timeoutMS,
+                maxRetries: this.options.retries
             });
-            // reset retries
-            this.retries = this.options.retries;
             return response.choices[0]?.message?.content || "";
         }
         catch (error) {
             coreExports.warning(`Failed to review code for : ${error instanceof Error ? error.message : String(error)}`);
-            // Retry logic
-            if (this.retries > 0) {
-                this.retries--;
-                await sleep(1000); // Wait for 1 second before retrying
-                return this.create(ctx, prompts);
-            }
             throw new Error("Failed to review this file due to an API error.");
         }
     }
