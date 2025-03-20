@@ -221,9 +221,8 @@ describe("parsePatch", () => {
      }
    }
 `
-
     const results = parsePatch({ filename: "filename", patch })
-    console.log(JSON.stringify(results, null, 2))
+
     expect(results[0].from).toEqual({
       filename: "filename",
       startLine: 3,
