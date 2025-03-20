@@ -1,4 +1,4 @@
-import { debug, info } from "@actions/core"
+import { debug } from "@actions/core"
 
 export type Hunk = {
   filename: string
@@ -207,8 +207,8 @@ const processChunk = (
     // lineNo++
   }
 
-  info(`from content: ${fromContent.join("\n")}`)
-  info(`to content: ${toContent.join("\n")}`)
+  debug(`from content: ${fromContent.join("\n")}`)
+  debug(`to content: ${toContent.join("\n")}`)
 
   const result: DiffResult = {
     from: {
