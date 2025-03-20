@@ -169,8 +169,6 @@ const processChunk = (
 
   const { fromStart, fromCount, toStart, toCount } = headerResult
   let lineNo = toStart - 1
-  // const fromContent: string[] = [firstLine]
-  // const toContent: string[] = [`${lineNo}  ${firstLine}`]
   const fromContent: string[] = []
   const toContent: string[] = []
 
