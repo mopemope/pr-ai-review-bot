@@ -39,7 +39,7 @@ export interface ChatBot {
  */
 export const getModelName = (name: string): string => {
   const parts = name.split("/")
-  return parts.length > 1 ? parts[1] : name
+  return parts.length > 1 ? parts.slice(1).join("/") : name
 }
 
 /**
