@@ -33329,7 +33329,7 @@ ${body}`);
             };
         // Send the API request to create the review comment and get the result
         const reviewCommentResult = await this.octokit.rest.pulls.createReviewComment(requestParams);
-        coreExports.debug(`review comment result: ${JSON.stringify(reviewCommentResult, null, 2)} ${JSON.stringify(requestParams, null, 2)}`);
+        coreExports.debug(`review comment result: ${reviewCommentResult.status} ${JSON.stringify(requestParams, null, 2)}`);
         if (reviewCommentResult.status !== 201) {
             // Comment was successfully created with 201 Created status
             // debug(`Comment created: $reviewCommentResult.data.html_url`);
@@ -35857,6 +35857,8 @@ const processChunk = (lines, startIndex, filename) => {
         i++;
         lineNo++;
     }
+    coreExports.info(`from content: ${fromContent.join("\n")}`);
+    coreExports.info(`to content: ${toContent.join("\n")}`);
     const result = {
         from: {
             filename,
