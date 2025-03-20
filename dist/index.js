@@ -35589,7 +35589,8 @@ class Options {
     reviewPolicy;
     commentGreeting;
     ignoreKeywords;
-    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords) {
+    baseURL;
+    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords, baseURL) {
         this.debug = debug;
         this.disableReview = disableReview;
         this.disableReleaseNotes = disableReleaseNotes;
@@ -35607,6 +35608,9 @@ class Options {
         this.reviewPolicy = reviewPolicy;
         this.commentGreeting = commentGreeting;
         this.ignoreKeywords = ignoreKeywords;
+        if (baseURL && baseURL.length > 0) {
+            this.baseURL = baseURL;
+        }
     }
     /**
      * Prints all configuration options using core.info for debugging purposes.
@@ -47352,6 +47356,9 @@ class OpenAIClient {
             timeout: options.timeoutMS,
             maxRetries: options.retries
         });
+        if (options.baseURL) {
+            this.client.baseURL = options.baseURL;
+        }
         if (this.options.debug) {
             coreExports.debug(`Using model: ${modelName}`);
         }
@@ -47394,7 +47401,7 @@ class OpenAIClient {
  */
 const getModelName = (name) => {
     const parts = name.split("/");
-    return parts.length > 1 ? parts[1] : name;
+    return parts.length > 1 ? parts.slice(1).join("/") : name;
 };
 /**
  * Factory function to create appropriate ChatBot implementation based on model name
@@ -47404,7 +47411,7 @@ const getModelName = (name) => {
  * @throws Error if the model is not supported
  */
 const createChatBotFromModel = (modelName, options) => {
-    if (modelName.startsWith("openai/")) {
+    if (modelName.startsWith("openai/") || modelName.startsWith("openrouter/")) {
         return new OpenAIClient(modelName, options);
     }
     if (modelName.startsWith("google/")) {
@@ -47656,7 +47663,7 @@ const parseReviewComment = (filename, reviewComment) => {
  * @returns Configured Options instance with all action parameters
  */
 const getOptions = () => {
-    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"));
+    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"), coreExports.getInput("base_url") || undefined);
 };
 const token = process.env.GITHUB_TOKEN || "";
 /**
