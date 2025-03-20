@@ -47335,14 +47335,14 @@ class OpenAIClient {
     options;
     fullModelName;
     model;
-    retries;
     constructor(modelName, options) {
         this.fullModelName = modelName;
         this.model = getModelName(modelName);
-        this.retries = options.retries;
         this.options = options;
         this.client = new OpenAI({
-            apiKey: apiKey
+            apiKey: apiKey,
+            timeout: options.timeoutMS,
+            maxRetries: options.retries
         });
         if (this.options.debug) {
             coreExports.debug(`Using model: ${modelName}`);
@@ -47365,19 +47365,14 @@ class OpenAIClient {
                 ],
                 temperature: 0.1
                 // max_tokens: 2000,
+            }, {
+                timeout: this.options.timeoutMS,
+                maxRetries: this.options.retries
             });
-            // reset retries
-            this.retries = this.options.retries;
             return response.choices[0]?.message?.content || "";
         }
         catch (error) {
             coreExports.warning(`Failed to review code for : ${error instanceof Error ? error.message : String(error)}`);
-            // Retry logic
-            if (this.retries > 0) {
-                this.retries--;
-                await sleep(1000); // Wait for 1 second before retrying
-                return this.create(ctx, prompts);
-            }
             throw new Error("Failed to review this file due to an API error.");
         }
     }

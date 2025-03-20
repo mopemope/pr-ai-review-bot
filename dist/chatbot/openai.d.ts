@@ -6,7 +6,6 @@ export declare class OpenAIClient implements ChatBot {
     private options;
     private fullModelName;
     private model;
-    private retries;
     constructor(modelName: string, options: Options);
     getFullModelName(): string;
     create(ctx: PullRequestContext, prompts: Message[]): Promise<string>;
