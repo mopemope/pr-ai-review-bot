@@ -1,3 +1,5 @@
+import { debug } from "@actions/core"
+
 export type Hunk = {
   filename: string
   startLine: number
@@ -13,7 +15,10 @@ export type DiffResult = {
 }
 
 /**
- * parseChunkHeader
+ * Parses the header of a diff chunk.
+ *
+ * @param line - The header line starting with @@ (format: @@ -a,b +c,d @@ context)
+ * @returns Parsed values from the header or null if it doesn't match the expected format
  */
 const parseChunkHeader = (
   line: string
@@ -39,7 +44,17 @@ const parseChunkHeader = (
 }
 
 /**
- * processConflictMarker
+ * Processes a git conflict marker in the diff.
+ *
+ * This function handles the sections between conflict markers (<<<<<<<, =======, >>>>>>>)
+ * and organizes the content into original and modified sections.
+ *
+ * @param lines - Array of diff lines
+ * @param patchLineNo - Current line number in the patched file
+ * @param lineNo - Current index in the lines array
+ * @param fromContent - Array to store content from the original file
+ * @param toContent - Array to store content from the modified file
+ * @returns Object containing branch information and the next index to process
  */
 const processConflictMarker = (
   lines: string[],
@@ -70,7 +85,6 @@ const processConflictMarker = (
     index++
   }
 
-  // スキップ "=======" 行
   index++
 
   // modified code
@@ -78,7 +92,7 @@ const processConflictMarker = (
     index < lines.length &&
     !lines[index].replace(/^\+*/, "").startsWith(">>>>>>>")
   ) {
-    // modContent.push(lines[index].replace(/^\+/, ""));
+    // modContent.push(lines[index].replace(/^\+*/, ""));
     toContent.push(`${patchLineNo} ${lines[index]}`)
     index++
   }
@@ -102,7 +116,16 @@ const processConflictMarker = (
 }
 
 /**
- * processNormalLine
+ * Processes a normal (non-conflict) line in a diff.
+ *
+ * Handles lines that start with '+', '-', or neither (context lines).
+ * '+' lines are additions in the new file, '-' lines are removals from the original file,
+ * and context lines exist in both files.
+ *
+ * @param lineNo - Current line number
+ * @param line - The diff line to process
+ * @param fromContent - Array to store content from the original file
+ * @param toContent - Array to store content from the modified file
  */
 const processNormalLine = (
   lineNo: number,
@@ -111,19 +134,25 @@ const processNormalLine = (
   toContent: string[]
 ) => {
   if (line.startsWith("+")) {
-    // const markerLine = line.replace(/^\+*/, " ");
+    // Addition line - only in the new file
     toContent.push(`${lineNo + 1} ${line}`)
   } else if (line.startsWith("-")) {
-    // const markerLine = line.replace(/^-*/, " ");
+    // Removal line - only in the original file
     fromContent.push(line)
   } else {
+    // Context line - exists in both files
     fromContent.push(line)
     toContent.push(`${lineNo + 1} ${line}`)
   }
 }
 
 /**
- * processChunk
+ * Process a diff chunk to extract file change information.
+ *
+ * @param lines - Array of diff lines
+ * @param startIndex - Starting index in the lines array
+ * @param filename - Name of the file being processed
+ * @returns Object containing the parsed diff result and the next index to process
  */
 const processChunk = (
   lines: string[],
@@ -191,6 +220,18 @@ const processChunk = (
   return { result, nextIndex: i }
 }
 
+/**
+ * Parses a git diff patch into structured diff results.
+ *
+ * This function takes a filename and a patch string, then processes the patch
+ * to extract information about the changes. It identifies chunk headers and processes
+ * each chunk separately.
+ *
+ * @param params - Object containing filename and patch
+ * @param params.filename - Name of the file being processed
+ * @param params.patch - Git diff patch string
+ * @returns Array of DiffResult objects representing the changes
+ */
 export const parsePatch = ({
   filename,
   patch
@@ -200,9 +241,11 @@ export const parsePatch = ({
 }) => {
   const results: DiffResult[] = []
   if (!patch) {
+    // Return empty array if no patch is provided
     return results
   }
 
+  debug(`parsePatch: ${filename} ${patch}`)
   const lines = patch.split("\n")
   let i = 0
 
@@ -210,12 +253,14 @@ export const parsePatch = ({
     const line = lines[i]
 
     if (line.startsWith("@@")) {
+      // Process chunk headers (format: @@ -a,b +c,d @@ ...)
       const { result, nextIndex } = processChunk(lines, i, filename)
       if (result) {
         results.push(result)
       }
       i = nextIndex
     } else {
+      // Skip non-chunk header lines
       i++
     }
   }

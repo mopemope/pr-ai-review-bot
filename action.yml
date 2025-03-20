@@ -155,7 +155,7 @@ inputs:
   timeout_ms:
     required: false
     description: "Timeout for OpenAI API call in millis"
-    default: "360000"
+    default: "300000"
   release_notes_title:
     required: false
     description: "Title for the release notes"
