@@ -27,7 +27,8 @@ describe("Options", () => {
         true,
         "review policy",
         "default greeting",
-        ["keyword1", "keyword2"]
+        ["keyword1", "keyword2"],
+        ""
       )
 
       expect(options.debug).toBe(true)
@@ -69,7 +70,8 @@ describe("Options", () => {
         true,
         "review policy",
         "",
-        []
+        [],
+        undefined
       )
 
       expect(options.checkPath("src/main.ts")).toBe(true)
