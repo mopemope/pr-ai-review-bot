@@ -53,7 +53,7 @@ export const createChatBotFromModel = (
   modelName: string,
   options: Options
 ): ChatBot => {
-  if (modelName.startsWith("openai/")) {
+  if (modelName.startsWith("openai/") || modelName.startsWith("openrouter/")) {
     return new OpenAIClient(modelName, options)
   }
   if (modelName.startsWith("google/")) {

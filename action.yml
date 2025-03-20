@@ -229,6 +229,10 @@ inputs:
       @review-bot: ignore
       @review-bot: no-review
       @review-bot: skip-review
+  base_url:
+    required: false
+    description: "Specify the URL when using OpenAI-compatible API"
+    default: ""
 
 runs:
   using: node20
