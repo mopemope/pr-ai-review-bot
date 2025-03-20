@@ -132,17 +132,20 @@ const processNormalLine = (
   line: string,
   fromContent: string[],
   toContent: string[]
-) => {
+): boolean => {
   if (line.startsWith("+")) {
     // Addition line - only in the new file
     toContent.push(`${lineNo + 1} ${line}`)
+    return true
   } else if (line.startsWith("-")) {
     // Removal line - only in the original file
     fromContent.push(line)
+    return false
   } else {
     // Context line - exists in both files
     fromContent.push(line)
     toContent.push(`${lineNo + 1} ${line}`)
+    return true
   }
 }
 
@@ -164,10 +167,12 @@ const processChunk = (
     return { result: null, nextIndex: startIndex + 1 }
   }
 
-  const { fromStart, fromCount, toStart, toCount, firstLine } = headerResult
+  const { fromStart, fromCount, toStart, toCount } = headerResult
   let lineNo = toStart - 1
-  const fromContent: string[] = [firstLine]
-  const toContent: string[] = [`${lineNo}  ${firstLine}`]
+  // const fromContent: string[] = [firstLine]
+  // const toContent: string[] = [`${lineNo}  ${firstLine}`]
+  const fromContent: string[] = []
+  const toContent: string[] = []
 
   let origBranch: string | undefined
   let modBranch: string | undefined
@@ -194,9 +199,12 @@ const processChunk = (
       continue
     }
 
-    processNormalLine(lineNo, currentLine, fromContent, toContent)
+    if (processNormalLine(lineNo, currentLine, fromContent, toContent)) {
+      // Increment line number for context lines and additions
+      lineNo++
+    }
     i++
-    lineNo++
+    // lineNo++
   }
 
   info(`from content: ${fromContent.join("\n")}`)
