@@ -39,7 +39,7 @@ export interface ChatBot {
  */
 export const getModelName = (name: string): string => {
   const parts = name.split("/")
-  return parts.length > 1 ? parts[1] : name
+  return parts.length > 1 ? parts.slice(1).join("/") : name
 }
 
 /**
@@ -53,7 +53,7 @@ export const createChatBotFromModel = (
   modelName: string,
   options: Options
 ): ChatBot => {
-  if (modelName.startsWith("openai/")) {
+  if (modelName.startsWith("openai/") || modelName.startsWith("openrouter/")) {
     return new OpenAIClient(modelName, options)
   }
   if (modelName.startsWith("google/")) {

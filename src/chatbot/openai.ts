@@ -21,7 +21,9 @@ export class OpenAIClient implements ChatBot {
       timeout: options.timeoutMS,
       maxRetries: options.retries
     })
-
+    if (options.baseURL) {
+      this.client.baseURL = options.baseURL
+    }
     if (this.options.debug) {
       debug(`Using model: ${modelName}`)
     }

@@ -19,6 +19,7 @@ export class Options {
   reviewPolicy: string
   commentGreeting: string
   ignoreKeywords: string[]
+  baseURL: string | undefined
 
   constructor(
     debug: boolean,
@@ -36,7 +37,8 @@ export class Options {
     useFileContent: boolean,
     reviewPolicy: string,
     commentGreeting: string,
-    ignoreKeywords: string[]
+    ignoreKeywords: string[],
+    baseURL: string | undefined
   ) {
     this.debug = debug
     this.disableReview = disableReview
@@ -55,6 +57,9 @@ export class Options {
     this.reviewPolicy = reviewPolicy
     this.commentGreeting = commentGreeting
     this.ignoreKeywords = ignoreKeywords
+    if (baseURL && baseURL.length > 0) {
+      this.baseURL = baseURL
+    }
   }
 
   /**
