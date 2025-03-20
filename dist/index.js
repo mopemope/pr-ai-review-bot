@@ -35839,8 +35839,6 @@ const processChunk = (lines, startIndex, filename) => {
     }
     const { fromStart, fromCount, toStart, toCount } = headerResult;
     let lineNo = toStart - 1;
-    // const fromContent: string[] = [firstLine]
-    // const toContent: string[] = [`${lineNo}  ${firstLine}`]
     const fromContent = [];
     const toContent = [];
     let origBranch;
@@ -35865,8 +35863,8 @@ const processChunk = (lines, startIndex, filename) => {
         i++;
         // lineNo++
     }
-    coreExports.info(`from content: ${fromContent.join("\n")}`);
-    coreExports.info(`to content: ${toContent.join("\n")}`);
+    coreExports.debug(`from content: ${fromContent.join("\n")}`);
+    coreExports.debug(`to content: ${toContent.join("\n")}`);
     const result = {
         from: {
             filename,
