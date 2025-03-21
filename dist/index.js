@@ -41398,6 +41398,8 @@ class GeminiClient {
                     temperature: 0.1
                     // maxOutputTokens: 2000,
                 }
+            }, {
+                timeout: this.options.timeoutMS
             });
             // reset retries
             this.retries = this.options.retries;
