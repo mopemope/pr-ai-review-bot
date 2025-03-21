@@ -42,20 +42,25 @@ export class GeminiClient implements ChatBot {
     try {
       // TODO contents caching
       // Call the Gemini API
-      const result = await this.model.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: prompts.map((prompt) => ({
-              text: prompt.text
-            }))
+      const result = await this.model.generateContent(
+        {
+          contents: [
+            {
+              role: "user",
+              parts: prompts.map((prompt) => ({
+                text: prompt.text
+              }))
+            }
+          ],
+          generationConfig: {
+            temperature: 0.1
+            // maxOutputTokens: 2000,
           }
-        ],
-        generationConfig: {
-          temperature: 0.1
-          // maxOutputTokens: 2000,
+        },
+        {
+          timeout: this.options.timeoutMS
         }
-      })
+      )
       // reset retries
       this.retries = this.options.retries
       return result.response.text()
