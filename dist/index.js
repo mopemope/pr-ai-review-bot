@@ -47461,6 +47461,8 @@ class Reviewer {
         this.options = options;
         this.summaryBot = this.options.summaryModel.map((summaryModel) => createChatBotFromModel(summaryModel, this.options));
         this.reviewBot = this.options.model.map((model) => createChatBotFromModel(model, this.options));
+        coreExports.info(`summary model: ${this.getSummaryBot()?.getFullModelName()}`);
+        coreExports.info(`review model: ${this.getReviewBot()?.getFullModelName()}`);
     }
     getSummaryBot() {
         if (this.summaryBot.length > 0) {
