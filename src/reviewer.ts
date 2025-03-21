@@ -64,6 +64,9 @@ export class Reviewer {
     this.reviewBot = this.options.model.map((model) =>
       createChatBotFromModel(model, this.options)
     )
+
+    info(`summary model: ${this.getSummaryBot()?.getFullModelName()}`)
+    info(`review model: ${this.getReviewBot()?.getFullModelName()}`)
   }
 
   getSummaryBot(): ChatBot | undefined {
