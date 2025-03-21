@@ -126,13 +126,6 @@ const getChangedFiles = async ({
   octokit: ReturnType<typeof getOctokit>
   baseCommitId: string
 }): Promise<ChangeFile[]> => {
-  const pull_request = context.payload.pull_request
-
-  // Verify that the base commit SHA exists
-  if (!pull_request?.base?.sha) {
-    throw new Error("No commit id found")
-  }
-
   debug(`getChangedFiles: ${baseCommitId} ${prContext.headCommitId}`)
 
   // Compare commits to find changes between the last reviewed commit and current head
@@ -250,6 +243,11 @@ export async function run(): Promise<void> {
     if (options.includeIgnoreKeywords(prContext.description)) {
       // Skip the review if ignore keywords are found in the PR description
       info("Ignore keywords found in PR description. Skipping review.")
+      return
+    }
+    const pull_request = context.payload.pull_request
+    if (!pull_request?.base?.sha) {
+      info("base commit id not found")
       return
     }
 

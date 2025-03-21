@@ -47719,11 +47719,6 @@ const getFileContent = async (octokit, owner, repo, path, ref) => {
  * @throws Error if the commit information cannot be found
  */
 const getChangedFiles = async ({ prContext, options, octokit, baseCommitId }) => {
-    const pull_request = githubExports.context.payload.pull_request;
-    // Verify that the base commit SHA exists
-    if (!pull_request?.base?.sha) {
-        throw new Error("No commit id found");
-    }
     debug$2(`getChangedFiles: ${baseCommitId} ${prContext.headCommitId}`);
     // Compare commits to find changes between the last reviewed commit and current head
     const targetBranchDiff = await octokit.rest.repos.compareCommits({
@@ -47818,6 +47813,11 @@ async function run() {
         if (options.includeIgnoreKeywords(prContext.description)) {
             // Skip the review if ignore keywords are found in the PR description
             coreExports.info("Ignore keywords found in PR description. Skipping review.");
+            return;
+        }
+        const pull_request = githubExports.context.payload.pull_request;
+        if (!pull_request?.base?.sha) {
+            coreExports.info("base commit id not found");
             return;
         }
         // Create authenticated GitHub API client
