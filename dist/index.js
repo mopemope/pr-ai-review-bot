@@ -47461,8 +47461,10 @@ class Reviewer {
         this.options = options;
         this.summaryBot = this.options.summaryModel.map((summaryModel) => createChatBotFromModel(summaryModel, this.options));
         this.reviewBot = this.options.model.map((model) => createChatBotFromModel(model, this.options));
-        coreExports.info(`summary model: ${this.getSummaryBot()?.getFullModelName()}`);
-        coreExports.info(`review model: ${this.getReviewBot()?.getFullModelName()}`);
+        const summaryModel = this.getSummaryBot()?.getFullModelName() || "Unknown";
+        const reviewModel = this.getReviewBot()?.getFullModelName() || "Unknown";
+        coreExports.info(`summary model: ${summaryModel}`);
+        coreExports.info(`review model: ${reviewModel}`);
     }
     getSummaryBot() {
         if (this.summaryBot.length > 0) {
