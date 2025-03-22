@@ -1,4 +1,4 @@
-# GitHub Actions for AI PR Reviewer and Summarizer
+# Smart PR Reviewer
 
 A GitHub Action that provides intelligent code review and release notes
 generation for pull requests using AI. The action automatically analyzes code

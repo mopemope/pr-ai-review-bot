@@ -1,5 +1,6 @@
-name: "GitHub Actions for AI PR Reviewer & Summarizer"
-description: "GitHub Actions for AI PR Reviewer & Summarizer"
+name: "Smart PR Reviewer"
+description:
+  "AI-powered code reviewer and release notes generator for pull requests"
 branding:
   icon: "git-merge"
   color: "blue"
