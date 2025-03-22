@@ -1,5 +1,6 @@
 name: "Smart PR Reviewer"
-description: "AI-powered code reviewer and release notes generator for pull requests"
+description:
+  "AI-powered code reviewer and release notes generator for pull requests"
 branding:
   icon: "git-merge"
   color: "blue"
