@@ -51,11 +51,14 @@ export class ClaudeClient implements ChatBot {
             {
               role: "user",
               content: prompts.map((prompt) => {
-                return {
-                  cache_control: prompt.cache ? { type: "ephemeral" } : null,
+                const block: TextBlockParam = {
                   text: prompt.text,
                   type: "text"
-                } satisfies TextBlockParam
+                }
+                if (prompt.cache) {
+                  block.cache_control = { type: "ephemeral" }
+                }
+                return block
               })
             }
           ],
