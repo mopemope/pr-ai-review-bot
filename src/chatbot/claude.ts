@@ -1,4 +1,4 @@
-import { debug, warning } from "@actions/core"
+import { debug, info, warning } from "@actions/core"
 import Anthropic from "@anthropic-ai/sdk"
 import type { TextBlockParam } from "@anthropic-ai/sdk/resources/index.mjs"
 import type { PullRequestContext } from "../context.js"
@@ -68,6 +68,10 @@ export class ClaudeClient implements ChatBot {
         { timeout: this.options.timeoutMS, maxRetries: this.options.retries }
       )
 
+      const usage = JSON.stringify(result.usage, null, 2)
+      if (this.options.debug) {
+        info(`Claude usage: ${usage}`)
+      }
       const res = result.content[0]
       return res.type === "text" ? res.text : ""
     } catch (error) {
