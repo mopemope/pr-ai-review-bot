@@ -38,7 +38,15 @@ export class ClaudeClient implements ChatBot {
       const result = await this.client.messages.create(
         {
           model: this.model,
-          system: this.options.systemPrompt,
+          system: [
+            {
+              type: "text",
+              text: this.options.systemPrompt,
+              cache_control: {
+                type: "ephemeral" // Cache the system prompt for the session
+              }
+            }
+          ],
           messages: [
             {
               role: "user",
