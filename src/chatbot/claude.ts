@@ -1,4 +1,4 @@
-import { debug, warning } from "@actions/core"
+import { debug, info, warning } from "@actions/core"
 import Anthropic from "@anthropic-ai/sdk"
 import type { TextBlockParam } from "@anthropic-ai/sdk/resources/index.mjs"
 import type { PullRequestContext } from "../context.js"
@@ -38,16 +38,27 @@ export class ClaudeClient implements ChatBot {
       const result = await this.client.messages.create(
         {
           model: this.model,
-          system: this.options.systemPrompt,
+          system: [
+            {
+              type: "text",
+              text: this.options.systemPrompt,
+              cache_control: {
+                type: "ephemeral" // Cache the system prompt for the session
+              }
+            }
+          ],
           messages: [
             {
               role: "user",
               content: prompts.map((prompt) => {
-                return {
-                  cache_control: prompt.cache ? { type: "ephemeral" } : null,
+                const block: TextBlockParam = {
                   text: prompt.text,
                   type: "text"
-                } satisfies TextBlockParam
+                }
+                if (prompt.cache) {
+                  block.cache_control = { type: "ephemeral" }
+                }
+                return block
               })
             }
           ],
@@ -57,6 +68,10 @@ export class ClaudeClient implements ChatBot {
         { timeout: this.options.timeoutMS, maxRetries: this.options.retries }
       )
 
+      if (this.options.debug) {
+        const usage = JSON.stringify(result.usage, null, 2)
+        info(`Claude usage: ${usage}`)
+      }
       const res = result.content[0]
       return res.type === "text" ? res.text : ""
     } catch (error) {

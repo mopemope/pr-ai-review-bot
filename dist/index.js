@@ -39811,22 +39811,37 @@ class ClaudeClient {
             // Call Claude API
             const result = await this.client.messages.create({
                 model: this.model,
-                system: this.options.systemPrompt,
+                system: [
+                    {
+                        type: "text",
+                        text: this.options.systemPrompt,
+                        cache_control: {
+                            type: "ephemeral" // Cache the system prompt for the session
+                        }
+                    }
+                ],
                 messages: [
                     {
                         role: "user",
                         content: prompts.map((prompt) => {
-                            return {
-                                cache_control: prompt.cache ? { type: "ephemeral" } : null,
+                            const block = {
                                 text: prompt.text,
                                 type: "text"
                             };
+                            if (prompt.cache) {
+                                block.cache_control = { type: "ephemeral" };
+                            }
+                            return block;
                         })
                     }
                 ],
                 max_tokens: 8192,
                 temperature: 0.1
             }, { timeout: this.options.timeoutMS, maxRetries: this.options.retries });
+            if (this.options.debug) {
+                const usage = JSON.stringify(result.usage, null, 2);
+                coreExports.info(`Claude usage: ${usage}`);
+            }
             const res = result.content[0];
             return res.type === "text" ? res.text : "";
         }
