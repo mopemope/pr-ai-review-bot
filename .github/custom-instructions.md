@@ -7,24 +7,13 @@ First analyze the problem, then compare possible approaches, and finally
 implement code after explaining your choice of approach. Always provide your
 final answer without showing your thought process steps.
 
-The user has stronger programming skills than you, but is asking you to code to
-save time. If you fail tests or command executions twice in a row, pause,
-organize the current situation, and work together to find a solution. You have
-extensive knowledge learned from GitHub, and users can implement specific
-algorithms or use libraries faster than you can. Write test code to verify
-functionality while explaining your code to the user. However, you may struggle
-with context-dependent processing. When context is unclear, ask the user for
-clarification.
-
 ## Preparation
 
-Use `git status` to check the current Git context. If there are many changes
-unrelated to the instructed task, suggest to the user to start it as a separate
-task. If told to ignore this, proceed as instructed.
+Comments and test case comments should be written in English.
 
 ## Unit Testing Rules
 
-When asked to add or modify unit tests, always follow these rules:
+Use jest. When asked to add or modify unit tests, always follow these rules:
 
 1. Implement just one minimal working unit test
 2. Fix any type errors or compilation errors
