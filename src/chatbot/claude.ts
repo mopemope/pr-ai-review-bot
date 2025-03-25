@@ -68,10 +68,9 @@ export class ClaudeClient implements ChatBot {
         { timeout: this.options.timeoutMS, maxRetries: this.options.retries }
       )
 
-      if (this.options.debug) {
-        const usage = JSON.stringify(result.usage, null, 2)
-        info(`Claude usage: ${usage}`)
-      }
+      const usage = JSON.stringify(result.usage, null, 2)
+      info(`Claude usage: ${usage}`)
+
       const res = result.content[0]
       return res.type === "text" ? res.text : ""
     } catch (error) {

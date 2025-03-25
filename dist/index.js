@@ -39838,10 +39838,8 @@ class ClaudeClient {
                 max_tokens: 8192,
                 temperature: 0.1
             }, { timeout: this.options.timeoutMS, maxRetries: this.options.retries });
-            if (this.options.debug) {
-                const usage = JSON.stringify(result.usage, null, 2);
-                coreExports.info(`Claude usage: ${usage}`);
-            }
+            const usage = JSON.stringify(result.usage, null, 2);
+            coreExports.info(`Claude usage: ${usage}`);
             const res = result.content[0];
             return res.type === "text" ? res.text : "";
         }
