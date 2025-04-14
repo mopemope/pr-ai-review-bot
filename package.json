@@ -48,7 +48,7 @@
     "@octokit/plugin-retry": "^6.1.0",
     "@octokit/plugin-throttling": "^8.2.0",
     "minimatch": "^10.0.1",
-    "openai": "^4.87.3"
+    "openai": "^4.93.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
