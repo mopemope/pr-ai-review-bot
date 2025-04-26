@@ -13,7 +13,7 @@ Comments and test case comments should be written in English.
 
 ## Unit Testing Rules
 
-Use jest. When asked to add or modify unit tests, always follow these rules:
+Use Jest. When asked to add or modify unit tests, always follow these rules:
 
 1. Implement just one minimal working unit test
 2. Fix any type errors or compilation errors
