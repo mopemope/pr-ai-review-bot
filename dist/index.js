@@ -36296,7 +36296,7 @@ const renderFileDiffHunk = (diff) => {
     return `---new_hunk---\n\`\`\`\n${toContent}\n\`\`\`\n\n---old_hunk---\n\`\`\`\n${fromContent}\n\`\`\``;
 };
 
-const VERSION$1 = '0.39.0'; // x-release-please-version
+const VERSION$1 = '0.40.0'; // x-release-please-version
 
 let auto$1 = false;
 let kind$1 = undefined;
@@ -36406,7 +36406,11 @@ function getRuntime$1({ manuallyImported } = {}) {
 /**
  * Disclaimer: modules in _shims aren't intended to be imported by SDK users.
  */
-if (!kind$1) setShims$1(getRuntime$1(), { auto: true });
+const init$1 = () => {
+  if (!kind$1) setShims$1(getRuntime$1(), { auto: true });
+};
+
+init$1();
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 class AnthropicError extends Error {
@@ -37059,6 +37063,8 @@ var __classPrivateFieldGet$9 = (undefined && undefined.__classPrivateFieldGet) |
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _AbstractPage_client$1;
+// try running side effects outside of _shims/index to workaround https://github.com/vercel/next.js/issues/76881
+init$1();
 async function defaultParseResponse$1(props) {
     const { response } = props;
     if (props.options.stream) {
@@ -37078,7 +37084,8 @@ async function defaultParseResponse$1(props) {
         return response;
     }
     const contentType = response.headers.get('content-type');
-    const isJSON = contentType?.includes('application/json') || contentType?.includes('application/vnd.api+json');
+    const mediaType = contentType?.split(';')[0]?.trim();
+    const isJSON = mediaType?.includes('application/json') || mediaType?.endsWith('+json');
     if (isJSON) {
         const json = await response.json();
         debug$1('response', response.status, response.url, response.headers, json);
@@ -37246,8 +37253,8 @@ let APIClient$1 = class APIClient {
         }
         return null;
     }
-    buildRequest(options, { retryCount = 0 } = {}) {
-        options = { ...options };
+    buildRequest(inputOptions, { retryCount = 0 } = {}) {
+        const options = { ...inputOptions };
         const { method, path, query, headers: headers = {} } = options;
         const body = ArrayBuffer.isView(options.body) || (options.__binaryRequest && typeof options.body === 'string') ?
             options.body
@@ -37270,9 +37277,9 @@ let APIClient$1 = class APIClient {
             httpAgent.options.timeout = minAgentTimeout;
         }
         if (this.idempotencyHeader && method !== 'get') {
-            if (!options.idempotencyKey)
-                options.idempotencyKey = this.defaultIdempotencyKey();
-            headers[this.idempotencyHeader] = options.idempotencyKey;
+            if (!inputOptions.idempotencyKey)
+                inputOptions.idempotencyKey = this.defaultIdempotencyKey();
+            headers[this.idempotencyHeader] = inputOptions.idempotencyKey;
         }
         const reqHeaders = this.buildHeaders({ options, headers, contentLength, retryCount });
         const req = {
@@ -37308,7 +37315,7 @@ let APIClient$1 = class APIClient {
         if (getHeader$1(defaultHeaders, 'x-stainless-timeout') === undefined &&
             getHeader$1(headers, 'x-stainless-timeout') === undefined &&
             options.timeout) {
-            reqHeaders['x-stainless-timeout'] = String(options.timeout);
+            reqHeaders['x-stainless-timeout'] = String(Math.trunc(options.timeout / 1000));
         }
         this.validateHeaders(reqHeaders, headers);
         return reqHeaders;
@@ -38102,6 +38109,7 @@ let Batches$2 = class Batches extends APIResource$1 {
                 Accept: 'application/binary',
                 ...options?.headers,
             },
+            stream: true,
             __binaryResponse: true,
         })
             ._thenUnwrap((_, props) => JSONLDecoder.fromResponse(props.response, props.controller));
@@ -39734,15 +39742,10 @@ class Anthropic extends APIClient$1 {
         throw new Error('Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted');
     }
     authHeaders(opts) {
-        const apiKeyAuth = this.apiKeyAuth(opts);
-        const bearerAuth = this.bearerAuth(opts);
-        if (apiKeyAuth != null && !isEmptyObj$1(apiKeyAuth)) {
-            return apiKeyAuth;
-        }
-        if (bearerAuth != null && !isEmptyObj$1(bearerAuth)) {
-            return bearerAuth;
-        }
-        return {};
+        return {
+            ...this.apiKeyAuth(opts),
+            ...this.bearerAuth(opts),
+        };
     }
     apiKeyAuth(opts) {
         if (this.apiKey == null) {
