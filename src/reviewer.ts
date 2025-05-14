@@ -87,7 +87,7 @@ export class Reviewer {
           `Fallback summary bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`
         )
       } else {
-        info(`No more summary bot available`)
+        info("No more summary bot available")
       }
     }
   }
@@ -108,7 +108,7 @@ export class Reviewer {
           `Fallback review bot from ${old?.getFullModelName()} to ${next.getFullModelName()}`
         )
       } else {
-        info(`No more review bot available`)
+        info("No more review bot available")
       }
     }
   }
