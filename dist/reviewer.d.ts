@@ -1,4 +1,4 @@
-import { type ChatBot, Message } from "./chatbot/index.js";
+import { type ChatBot, type Message } from "./chatbot/index.js";
 import type { Commenter } from "./commenter.js";
 import type { PullRequestContext } from "./context.js";
 import type { Options } from "./option.js";
@@ -64,20 +64,29 @@ export declare class Reviewer {
         changes: ChangeFile[];
     }): Promise<string>;
     /**
+     * Process a single review task (one diff in one file)
+     *
+     * @param prContext - The PR context
+     * @param prompts - The prompts to use
+     * @param task - The review task containing change and diff information
+     * @returns An array of review comments
+     */
+    private processReviewTask;
+    /**
      * Reviews code changes in a pull request and posts review comments.
-     * Analyzes each changed file and its diffs, generates review comments using the chatbot,
-     * and posts any non-LGTM comments as review comments via the commenter.
-     * The method processes files sequentially, and for each file, processes all diffs.
+     * Changes are processed in parallel batches for improved performance.
      *
      * @param prContext - Context information about the pull request
      * @param prompts - Prompt templates for generating reviews
      * @param changes - List of files changed in the pull request
+     * @param batchSize - Number of changes to process in parallel (default: 3)
      * @returns A promise that resolves when all reviews are completed and comments are posted
      */
-    reviewChanges({ prContext, prompts, changes }: {
+    reviewChanges({ prContext, prompts, changes, batchSize }: {
         prContext: PullRequestContext;
         prompts: Prompts;
         changes: ChangeFile[];
+        batchSize?: number;
     }): Promise<ReviewComment[]>;
 }
 /**

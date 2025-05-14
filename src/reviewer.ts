@@ -8,7 +8,7 @@ import type { Commenter } from "./commenter.js"
 import type { PullRequestContext } from "./context.js"
 import type { Options } from "./option.js"
 import type { Prompts } from "./prompts.js"
-import type { ChangeFile } from "./types.js"
+import type { ChangeFile, FileDiff } from "./types.js"
 
 export type ReviewComment = {
   filename: string
@@ -16,6 +16,12 @@ export type ReviewComment = {
   endLine: number
   comment: string
   isLGTM: boolean
+}
+
+// Define a structure for a review task
+type ReviewTask = {
+  change: ChangeFile
+  diff: FileDiff
 }
 
 /**
@@ -194,74 +200,122 @@ export class Reviewer {
   }
 
   /**
+   * Process a single review task (one diff in one file)
+   *
+   * @param prContext - The PR context
+   * @param prompts - The prompts to use
+   * @param task - The review task containing change and diff information
+   * @returns An array of review comments
+   */
+  private async processReviewTask(
+    prContext: PullRequestContext,
+    prompts: Prompts,
+    task: ReviewTask
+  ): Promise<ReviewComment[]> {
+    const { change, diff } = task
+    const filename = change.filename
+
+    info(`Start review: ${diff.filename}#${diff.index}`)
+
+    // Create a prompt specific to this file's diff
+    const reviewPrompt = prompts.renderReviewPrompt(prContext, change, diff)
+
+    // Generate the review comment
+    let reviewComment: string
+    try {
+      reviewComment = await this.createReview(prContext, reviewPrompt)
+      reviewComment = reviewComment.trim() // Fix: assign the result back to the variable
+    } catch (error) {
+      warning(
+        `Failed to generate review comment for ${diff.filename}#${diff.index}: ${error}`
+      )
+      return []
+    }
+
+    // Parse the review comment
+    const reviews = parseReviewComment(filename, reviewComment)
+
+    // Process and post each review comment
+    for (const review of reviews) {
+      info(
+        `Review comment: ${diff.filename}: ${review.startLine}-${review.endLine}\n${review.comment}`
+      )
+
+      // Skip LGTM comments
+      if (review.isLGTM) {
+        continue
+      }
+
+      // Post comment if not running locally
+      if (!this.options.localAction) {
+        try {
+          await this.commenter.createReviewComment(change.filename, review)
+        } catch (error) {
+          warning(
+            `Failed to post review comment for ${diff.filename}#${diff.index}: ${error}`
+          )
+        }
+      }
+    }
+
+    info(`End review: ${diff.filename}#${diff.index}`)
+    return reviews
+  }
+
+  /**
    * Reviews code changes in a pull request and posts review comments.
-   * Analyzes each changed file and its diffs, generates review comments using the chatbot,
-   * and posts any non-LGTM comments as review comments via the commenter.
-   * The method processes files sequentially, and for each file, processes all diffs.
+   * Changes are processed in parallel batches for improved performance.
    *
    * @param prContext - Context information about the pull request
    * @param prompts - Prompt templates for generating reviews
    * @param changes - List of files changed in the pull request
+   * @param batchSize - Number of changes to process in parallel (default: 3)
    * @returns A promise that resolves when all reviews are completed and comments are posted
    */
   async reviewChanges({
     prContext,
     prompts,
-    changes
+    changes,
+    batchSize = 3
   }: {
     prContext: PullRequestContext
     prompts: Prompts
     changes: ChangeFile[]
-  }) {
-    const results: ReviewComment[] = []
+    batchSize?: number
+  }): Promise<ReviewComment[]> {
+    // Create a list of all review tasks (file + diff combinations)
+    const allTasks: ReviewTask[] = []
     for (const change of changes) {
-      const filename = change.filename
       for (const diff of change.diff) {
-        // Create a prompt specific to this file's diff
-        const reviewPrompt = prompts.renderReviewPrompt(prContext, change, diff)
-
-        // Debug the review prompt
-        // debug(`Review prompt: ${JSON.stringify(reviewPrompt, null, 2)}`)
-        info(`Start review: ${diff.filename}#${diff.index}`)
-
-        let reviewComment: string | undefined = undefined
-        try {
-          reviewComment = await this.createReview(prContext, reviewPrompt)
-          // Trim leading/trailing whitespace from the review comment
-          reviewComment.trim()
-        } catch (error) {
-          // Handle error in review comment generation
-          warning(
-            `Failed to generate review comment for ${diff.filename}#${diff.index}: ${error}`
-          )
-          continue
-        }
-
-        const reviews = parseReviewComment(filename, reviewComment)
-
-        for (const review of reviews) {
-          info(
-            `Review comment: ${diff.filename}: ${review.startLine}-${review.endLine}\n${review.comment}`
-          )
-          if (review.isLGTM) {
-            continue
-          }
-          if (!this.options.localAction) {
-            try {
-              await this.commenter.createReviewComment(change.filename, review)
-            } catch (error) {
-              warning(
-                `Failed to post review comment for ${diff.filename}#${diff.index}: ${error}`
-              )
-            }
-          }
-        }
-        info(`End review: ${diff.filename}#${diff.index}`)
-        // Collect all review comments
-        results.push(...reviews)
+        allTasks.push({ change, diff })
       }
     }
-    return results
+
+    const allResults: ReviewComment[] = []
+
+    // Process tasks in batches
+    for (let i = 0; i < allTasks.length; i += batchSize) {
+      // Get the current batch of tasks
+      const currentBatch = allTasks.slice(i, i + batchSize)
+      info(
+        `Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(allTasks.length / batchSize)} (${currentBatch.length} tasks)`
+      )
+
+      // Process all tasks in current batch in parallel
+      const batchPromises = currentBatch.map((task) =>
+        this.processReviewTask(prContext, prompts, task)
+      )
+
+      // Wait for all tasks in this batch to complete
+      const batchResults = await Promise.all(batchPromises)
+
+      // Collect all results from this batch
+      for (const comments of batchResults) {
+        allResults.push(...comments)
+      }
+    }
+
+    return allResults
   }
 }
 
