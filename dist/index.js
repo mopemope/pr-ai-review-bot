@@ -41404,7 +41404,6 @@ class GeminiClient {
     }
     async create(ctx, prompts) {
         try {
-            // TODO contents caching
             // Call the Gemini API
             const result = await this.model.generateContent({
                 contents: [

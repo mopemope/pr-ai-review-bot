@@ -2,8 +2,8 @@ import { debug, warning } from "@actions/core"
 import { type GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai"
 import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
-import { type ChatBot, type Message, getModelName } from "./index.js"
 import { sleep } from "../utils.js"
+import { type ChatBot, type Message, getModelName } from "./index.js"
 
 const apiKey = process.env.GEMINI_API_KEY || ""
 
@@ -40,7 +40,6 @@ export class GeminiClient implements ChatBot {
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {
     try {
-      // TODO contents caching
       // Call the Gemini API
       const result = await this.model.generateContent(
         {
