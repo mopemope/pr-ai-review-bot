@@ -36296,7 +36296,7 @@ const renderFileDiffHunk = (diff) => {
     return `---new_hunk---\n\`\`\`\n${toContent}\n\`\`\`\n\n---old_hunk---\n\`\`\`\n${fromContent}\n\`\`\``;
 };
 
-const VERSION$1 = '0.40.0'; // x-release-please-version
+const VERSION$1 = '0.40.1'; // x-release-please-version
 
 let auto$1 = false;
 let kind$1 = undefined;
@@ -40163,7 +40163,7 @@ const DEFAULT_API_VERSION = "v1beta";
  * We can't `require` package.json if this runs on web. We will use rollup to
  * swap in the version number here at build time.
  */
-const PACKAGE_VERSION = "0.24.0";
+const PACKAGE_VERSION = "0.24.1";
 const PACKAGE_LOG_HEADER = "genai-js";
 var Task;
 (function (Task) {
@@ -41054,6 +41054,11 @@ class ChatSession {
                 }
             }
             finalResult = result;
+        })
+            .catch((e) => {
+            // Resets _sendPromise to avoid subsequent calls failing and throw error.
+            this._sendPromise = Promise.resolve();
+            throw e;
         });
         await this._sendPromise;
         return finalResult;
@@ -41802,7 +41807,7 @@ function stringify(object, opts = {}) {
     return joined.length > 0 ? prefix + joined : '';
 }
 
-const VERSION = '4.96.0'; // x-release-please-version
+const VERSION = '4.98.0'; // x-release-please-version
 
 let auto = false;
 let kind = undefined;
@@ -43601,6 +43606,12 @@ let Completions$2 = class Completions extends APIResource {
     /**
      * Get a stored chat completion. Only Chat Completions that have been created with
      * the `store` parameter set to `true` will be returned.
+     *
+     * @example
+     * ```ts
+     * const chatCompletion =
+     *   await client.chat.completions.retrieve('completion_id');
+     * ```
      */
     retrieve(completionId, options) {
         return this._client.get(`/chat/completions/${completionId}`, options);
@@ -43609,6 +43620,14 @@ let Completions$2 = class Completions extends APIResource {
      * Modify a stored chat completion. Only Chat Completions that have been created
      * with the `store` parameter set to `true` can be modified. Currently, the only
      * supported modification is to update the `metadata` field.
+     *
+     * @example
+     * ```ts
+     * const chatCompletion = await client.chat.completions.update(
+     *   'completion_id',
+     *   { metadata: { foo: 'string' } },
+     * );
+     * ```
      */
     update(completionId, body, options) {
         return this._client.post(`/chat/completions/${completionId}`, { body, ...options });
@@ -43622,6 +43641,12 @@ let Completions$2 = class Completions extends APIResource {
     /**
      * Delete a stored chat completion. Only Chat Completions that have been created
      * with the `store` parameter set to `true` can be deleted.
+     *
+     * @example
+     * ```ts
+     * const chatCompletionDeleted =
+     *   await client.chat.completions.del('completion_id');
+     * ```
      */
     del(completionId, options) {
         return this._client.delete(`/chat/completions/${completionId}`, options);
@@ -43648,6 +43673,18 @@ Chat$1.ChatCompletionsPage = ChatCompletionsPage;
 class Speech extends APIResource {
     /**
      * Generates audio from the input text.
+     *
+     * @example
+     * ```ts
+     * const speech = await client.audio.speech.create({
+     *   input: 'input',
+     *   model: 'string',
+     *   voice: 'ash',
+     * });
+     *
+     * const content = await speech.blob();
+     * console.log(content);
+     * ```
      */
     create(body, options) {
         return this._client.post('/audio/speech', {
@@ -44470,6 +44507,13 @@ _AssistantStream_addEvent = function _AssistantStream_addEvent(event) {
 class Assistants extends APIResource {
     /**
      * Create an assistant with a model and instructions.
+     *
+     * @example
+     * ```ts
+     * const assistant = await client.beta.assistants.create({
+     *   model: 'gpt-4o',
+     * });
+     * ```
      */
     create(body, options) {
         return this._client.post('/assistants', {
@@ -44480,6 +44524,13 @@ class Assistants extends APIResource {
     }
     /**
      * Retrieves an assistant.
+     *
+     * @example
+     * ```ts
+     * const assistant = await client.beta.assistants.retrieve(
+     *   'assistant_id',
+     * );
+     * ```
      */
     retrieve(assistantId, options) {
         return this._client.get(`/assistants/${assistantId}`, {
@@ -44489,6 +44540,13 @@ class Assistants extends APIResource {
     }
     /**
      * Modifies an assistant.
+     *
+     * @example
+     * ```ts
+     * const assistant = await client.beta.assistants.update(
+     *   'assistant_id',
+     * );
+     * ```
      */
     update(assistantId, body, options) {
         return this._client.post(`/assistants/${assistantId}`, {
@@ -44509,6 +44567,13 @@ class Assistants extends APIResource {
     }
     /**
      * Delete an assistant.
+     *
+     * @example
+     * ```ts
+     * const assistantDeleted = await client.beta.assistants.del(
+     *   'assistant_id',
+     * );
+     * ```
      */
     del(assistantId, options) {
         return this._client.delete(`/assistants/${assistantId}`, {
@@ -45834,6 +45899,12 @@ class Sessions extends APIResource {
      * It responds with a session object, plus a `client_secret` key which contains a
      * usable ephemeral API token that can be used to authenticate browser clients for
      * the Realtime API.
+     *
+     * @example
+     * ```ts
+     * const session =
+     *   await client.beta.realtime.sessions.create();
+     * ```
      */
     create(body, options) {
         return this._client.post('/realtime/sessions', {
@@ -45854,6 +45925,12 @@ class TranscriptionSessions extends APIResource {
      * It responds with a session object, plus a `client_secret` key which contains a
      * usable ephemeral API token that can be used to authenticate browser clients for
      * the Realtime API.
+     *
+     * @example
+     * ```ts
+     * const transcriptionSession =
+     *   await client.beta.realtime.transcriptionSessions.create();
+     * ```
      */
     create(body, options) {
         return this._client.post('/realtime/transcription_sessions', {
@@ -45879,6 +45956,14 @@ Realtime.TranscriptionSessions = TranscriptionSessions;
 class Messages extends APIResource {
     /**
      * Create a message.
+     *
+     * @example
+     * ```ts
+     * const message = await client.beta.threads.messages.create(
+     *   'thread_id',
+     *   { content: 'string', role: 'user' },
+     * );
+     * ```
      */
     create(threadId, body, options) {
         return this._client.post(`/threads/${threadId}/messages`, {
@@ -45889,6 +45974,14 @@ class Messages extends APIResource {
     }
     /**
      * Retrieve a message.
+     *
+     * @example
+     * ```ts
+     * const message = await client.beta.threads.messages.retrieve(
+     *   'thread_id',
+     *   'message_id',
+     * );
+     * ```
      */
     retrieve(threadId, messageId, options) {
         return this._client.get(`/threads/${threadId}/messages/${messageId}`, {
@@ -45898,6 +45991,14 @@ class Messages extends APIResource {
     }
     /**
      * Modifies a message.
+     *
+     * @example
+     * ```ts
+     * const message = await client.beta.threads.messages.update(
+     *   'thread_id',
+     *   'message_id',
+     * );
+     * ```
      */
     update(threadId, messageId, body, options) {
         return this._client.post(`/threads/${threadId}/messages/${messageId}`, {
@@ -45918,6 +46019,15 @@ class Messages extends APIResource {
     }
     /**
      * Deletes a message.
+     *
+     * @example
+     * ```ts
+     * const messageDeleted =
+     *   await client.beta.threads.messages.del(
+     *     'thread_id',
+     *     'message_id',
+     *   );
+     * ```
      */
     del(threadId, messageId, options) {
         return this._client.delete(`/threads/${threadId}/messages/${messageId}`, {
@@ -45975,6 +46085,14 @@ let Runs$1 = class Runs extends APIResource {
     }
     /**
      * Retrieves a run.
+     *
+     * @example
+     * ```ts
+     * const run = await client.beta.threads.runs.retrieve(
+     *   'thread_id',
+     *   'run_id',
+     * );
+     * ```
      */
     retrieve(threadId, runId, options) {
         return this._client.get(`/threads/${threadId}/runs/${runId}`, {
@@ -45984,6 +46102,14 @@ let Runs$1 = class Runs extends APIResource {
     }
     /**
      * Modifies a run.
+     *
+     * @example
+     * ```ts
+     * const run = await client.beta.threads.runs.update(
+     *   'thread_id',
+     *   'run_id',
+     * );
+     * ```
      */
     update(threadId, runId, body, options) {
         return this._client.post(`/threads/${threadId}/runs/${runId}`, {
@@ -46004,6 +46130,14 @@ let Runs$1 = class Runs extends APIResource {
     }
     /**
      * Cancels a run that is `in_progress`.
+     *
+     * @example
+     * ```ts
+     * const run = await client.beta.threads.runs.cancel(
+     *   'thread_id',
+     *   'run_id',
+     * );
+     * ```
      */
     cancel(threadId, runId, options) {
         return this._client.post(`/threads/${threadId}/runs/${runId}/cancel`, {
@@ -46131,6 +46265,13 @@ class Threads extends APIResource {
     }
     /**
      * Retrieves a thread.
+     *
+     * @example
+     * ```ts
+     * const thread = await client.beta.threads.retrieve(
+     *   'thread_id',
+     * );
+     * ```
      */
     retrieve(threadId, options) {
         return this._client.get(`/threads/${threadId}`, {
@@ -46140,6 +46281,13 @@ class Threads extends APIResource {
     }
     /**
      * Modifies a thread.
+     *
+     * @example
+     * ```ts
+     * const thread = await client.beta.threads.update(
+     *   'thread_id',
+     * );
+     * ```
      */
     update(threadId, body, options) {
         return this._client.post(`/threads/${threadId}`, {
@@ -46150,6 +46298,13 @@ class Threads extends APIResource {
     }
     /**
      * Delete a thread.
+     *
+     * @example
+     * ```ts
+     * const threadDeleted = await client.beta.threads.del(
+     *   'thread_id',
+     * );
+     * ```
      */
     del(threadId, options) {
         return this._client.delete(`/threads/${threadId}`, {
@@ -46212,6 +46367,15 @@ class Completions extends APIResource {
 class Embeddings extends APIResource {
     /**
      * Creates an embedding vector representing the input text.
+     *
+     * @example
+     * ```ts
+     * const createEmbeddingResponse =
+     *   await client.embeddings.create({
+     *     input: 'The quick brown fox jumped over the lazy dog',
+     *     model: 'text-embedding-3-small',
+     *   });
+     * ```
      */
     create(body, options) {
         const hasUserProvidedEncodingFormat = !!body.encoding_format;
@@ -46446,12 +46610,81 @@ class FileObjectsPage extends CursorPage {
 Files$1.FileObjectsPage = FileObjectsPage;
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class Methods extends APIResource {
+}
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+let Graders$1 = class Graders extends APIResource {
+    /**
+     * Run a grader.
+     *
+     * @example
+     * ```ts
+     * const response = await client.fineTuning.alpha.graders.run({
+     *   grader: {
+     *     input: 'input',
+     *     name: 'name',
+     *     operation: 'eq',
+     *     reference: 'reference',
+     *     type: 'string_check',
+     *   },
+     *   model_sample: 'model_sample',
+     *   reference_answer: 'string',
+     * });
+     * ```
+     */
+    run(body, options) {
+        return this._client.post('/fine_tuning/alpha/graders/run', { body, ...options });
+    }
+    /**
+     * Validate a grader.
+     *
+     * @example
+     * ```ts
+     * const response =
+     *   await client.fineTuning.alpha.graders.validate({
+     *     grader: {
+     *       input: 'input',
+     *       name: 'name',
+     *       operation: 'eq',
+     *       reference: 'reference',
+     *       type: 'string_check',
+     *     },
+     *   });
+     * ```
+     */
+    validate(body, options) {
+        return this._client.post('/fine_tuning/alpha/graders/validate', { body, ...options });
+    }
+};
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class Alpha extends APIResource {
+    constructor() {
+        super(...arguments);
+        this.graders = new Graders$1(this._client);
+    }
+}
+Alpha.Graders = Graders$1;
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 class Permissions extends APIResource {
     /**
      * **NOTE:** Calling this endpoint requires an [admin API key](../admin-api-keys).
      *
      * This enables organization owners to share fine-tuned models with other projects
      * in their organization.
+     *
+     * @example
+     * ```ts
+     * // Automatically fetches more pages as needed.
+     * for await (const permissionCreateResponse of client.fineTuning.checkpoints.permissions.create(
+     *   'ft:gpt-4o-mini-2024-07-18:org:weather:B7R9VjQd',
+     *   { project_ids: ['string'] },
+     * )) {
+     *   // ...
+     * }
+     * ```
      */
     create(fineTunedModelCheckpoint, body, options) {
         return this._client.getAPIList(`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`, PermissionCreateResponsesPage, { body, method: 'post', ...options });
@@ -46470,6 +46703,15 @@ class Permissions extends APIResource {
      *
      * Organization owners can use this endpoint to delete a permission for a
      * fine-tuned model checkpoint.
+     *
+     * @example
+     * ```ts
+     * const permission =
+     *   await client.fineTuning.checkpoints.permissions.del(
+     *     'ft:gpt-4o-mini-2024-07-18:org:weather:B7R9VjQd',
+     *     'cp_zc4Q7MP6XxulcVzj4MZdwsAB',
+     *   );
+     * ```
      */
     del(fineTunedModelCheckpoint, permissionId, options) {
         return this._client.delete(`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions/${permissionId}`, options);
@@ -46519,6 +46761,14 @@ class Jobs extends APIResource {
      * of the fine-tuned models once complete.
      *
      * [Learn more about fine-tuning](https://platform.openai.com/docs/guides/fine-tuning)
+     *
+     * @example
+     * ```ts
+     * const fineTuningJob = await client.fineTuning.jobs.create({
+     *   model: 'gpt-4o-mini',
+     *   training_file: 'file-abc123',
+     * });
+     * ```
      */
     create(body, options) {
         return this._client.post('/fine_tuning/jobs', { body, ...options });
@@ -46527,6 +46777,13 @@ class Jobs extends APIResource {
      * Get info about a fine-tuning job.
      *
      * [Learn more about fine-tuning](https://platform.openai.com/docs/guides/fine-tuning)
+     *
+     * @example
+     * ```ts
+     * const fineTuningJob = await client.fineTuning.jobs.retrieve(
+     *   'ft-AF1WoRqd3aJAHsqc9NY7iL8F',
+     * );
+     * ```
      */
     retrieve(fineTuningJobId, options) {
         return this._client.get(`/fine_tuning/jobs/${fineTuningJobId}`, options);
@@ -46539,6 +46796,13 @@ class Jobs extends APIResource {
     }
     /**
      * Immediately cancel a fine-tune job.
+     *
+     * @example
+     * ```ts
+     * const fineTuningJob = await client.fineTuning.jobs.cancel(
+     *   'ft-AF1WoRqd3aJAHsqc9NY7iL8F',
+     * );
+     * ```
      */
     cancel(fineTuningJobId, options) {
         return this._client.post(`/fine_tuning/jobs/${fineTuningJobId}/cancel`, options);
@@ -46551,6 +46815,32 @@ class Jobs extends APIResource {
             query,
             ...options,
         });
+    }
+    /**
+     * Pause a fine-tune job.
+     *
+     * @example
+     * ```ts
+     * const fineTuningJob = await client.fineTuning.jobs.pause(
+     *   'ft-AF1WoRqd3aJAHsqc9NY7iL8F',
+     * );
+     * ```
+     */
+    pause(fineTuningJobId, options) {
+        return this._client.post(`/fine_tuning/jobs/${fineTuningJobId}/pause`, options);
+    }
+    /**
+     * Resume a fine-tune job.
+     *
+     * @example
+     * ```ts
+     * const fineTuningJob = await client.fineTuning.jobs.resume(
+     *   'ft-AF1WoRqd3aJAHsqc9NY7iL8F',
+     * );
+     * ```
+     */
+    resume(fineTuningJobId, options) {
+        return this._client.post(`/fine_tuning/jobs/${fineTuningJobId}/resume`, options);
     }
 }
 class FineTuningJobsPage extends CursorPage {
@@ -46566,19 +46856,43 @@ Jobs.FineTuningJobCheckpointsPage = FineTuningJobCheckpointsPage;
 class FineTuning extends APIResource {
     constructor() {
         super(...arguments);
+        this.methods = new Methods(this._client);
         this.jobs = new Jobs(this._client);
         this.checkpoints = new Checkpoints$1(this._client);
+        this.alpha = new Alpha(this._client);
     }
 }
+FineTuning.Methods = Methods;
 FineTuning.Jobs = Jobs;
 FineTuning.FineTuningJobsPage = FineTuningJobsPage;
 FineTuning.FineTuningJobEventsPage = FineTuningJobEventsPage;
 FineTuning.Checkpoints = Checkpoints$1;
+FineTuning.Alpha = Alpha;
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class GraderModels extends APIResource {
+}
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class Graders extends APIResource {
+    constructor() {
+        super(...arguments);
+        this.graderModels = new GraderModels(this._client);
+    }
+}
+Graders.GraderModels = GraderModels;
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 class Images extends APIResource {
     /**
      * Creates a variation of a given image. This endpoint only supports `dall-e-2`.
+     *
+     * @example
+     * ```ts
+     * const imagesResponse = await client.images.createVariation({
+     *   image: fs.createReadStream('otter.png'),
+     * });
+     * ```
      */
     createVariation(body, options) {
         return this._client.post('/images/variations', multipartFormRequestOptions({ body, ...options }));
@@ -46586,6 +46900,14 @@ class Images extends APIResource {
     /**
      * Creates an edited or extended image given one or more source images and a
      * prompt. This endpoint only supports `gpt-image-1` and `dall-e-2`.
+     *
+     * @example
+     * ```ts
+     * const imagesResponse = await client.images.edit({
+     *   image: fs.createReadStream('path/to/file'),
+     *   prompt: 'A cute baby sea otter wearing a beret',
+     * });
+     * ```
      */
     edit(body, options) {
         return this._client.post('/images/edits', multipartFormRequestOptions({ body, ...options }));
@@ -46593,6 +46915,13 @@ class Images extends APIResource {
     /**
      * Creates an image given a prompt.
      * [Learn more](https://platform.openai.com/docs/guides/images).
+     *
+     * @example
+     * ```ts
+     * const imagesResponse = await client.images.generate({
+     *   prompt: 'A cute baby sea otter',
+     * });
+     * ```
      */
     generate(body, options) {
         return this._client.post('/images/generations', { body, ...options });
@@ -47030,6 +47359,13 @@ class Responses extends APIResource {
     }
     /**
      * Deletes a model response with the given ID.
+     *
+     * @example
+     * ```ts
+     * await client.responses.del(
+     *   'resp_677efb5139a88190b512bc3fef8e535d',
+     * );
+     * ```
      */
     del(responseId, options) {
         return this._client.delete(`/responses/${responseId}`, {
@@ -47538,6 +47874,7 @@ class OpenAI extends APIClient {
         this.moderations = new Moderations(this);
         this.models = new Models(this);
         this.fineTuning = new FineTuning(this);
+        this.graders = new Graders(this);
         this.vectorStores = new VectorStores(this);
         this.beta = new Beta(this);
         this.batches = new Batches(this);
@@ -47597,6 +47934,7 @@ OpenAI.Moderations = Moderations;
 OpenAI.Models = Models;
 OpenAI.ModelsPage = ModelsPage;
 OpenAI.FineTuning = FineTuning;
+OpenAI.Graders = Graders;
 OpenAI.VectorStores = VectorStores;
 OpenAI.VectorStoresPage = VectorStoresPage;
 OpenAI.VectorStoreSearchResponsesPage = VectorStoreSearchResponsesPage;
