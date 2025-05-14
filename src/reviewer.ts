@@ -1,8 +1,8 @@
 import { debug, info, warning } from "@actions/core"
 import {
   type ChatBot,
-  createChatBotFromModel,
-  Message
+  type Message,
+  createChatBotFromModel
 } from "./chatbot/index.js"
 import type { Commenter } from "./commenter.js"
 import type { PullRequestContext } from "./context.js"
@@ -67,8 +67,8 @@ export class Reviewer {
 
     const summaryModel = this.getSummaryBot()?.getFullModelName() || "Unknown"
     const reviewModel = this.getReviewBot()?.getFullModelName() || "Unknown"
-    info(`summary model: ${summaryModel}`)
-    info(`review model: ${reviewModel}`)
+    info(`use summary model: ${summaryModel}`)
+    info(`use review model: ${reviewModel}`)
   }
 
   getSummaryBot(): ChatBot | undefined {
