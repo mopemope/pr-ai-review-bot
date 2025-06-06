@@ -202,8 +202,8 @@ inputs:
   summarize_release_notes:
     required: false
     description:
-        "The prompt for generating release notes in the same chat as summarize
-        stage"
+      "The prompt for generating release notes in the same chat as summarize
+      stage"
     default: |
       Craft concise release notes for the pull request.
       Focus on the purpose and user impact, categorizing changes as "New Feature", "Bug Fix",
