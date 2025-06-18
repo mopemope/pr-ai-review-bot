@@ -63,6 +63,10 @@ jobs:
           LOCAL_ACTION: "true"
         with:
           debug: true
-          summary_model: "openai/o4-mini"
-          model: "openai/o4-mini"
+          base_url: "https://openrouter.ai/api/v1"
+          use_file_content: false
+          summary_model: |
+            openrouter/deepseek/deepseek-chat-v3-0324:free
+          model: |
+            openrouter/deepseek/deepseek-chat-v3-0324:free
           language: "japanese"

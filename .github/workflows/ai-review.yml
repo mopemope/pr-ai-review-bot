@@ -38,7 +38,7 @@ jobs:
           base_url: "https://openrouter.ai/api/v1"
           use_file_content: false
           summary_model: |
-            openrouter/deepseek/deepseek-chat:free
+            openrouter/deepseek/deepseek-chat-v3-0324:free
           model: |
-            openrouter/deepseek/deepseek-chat:free
+            openrouter/deepseek/deepseek-chat-v3-0324:free
           language: "japanese"
