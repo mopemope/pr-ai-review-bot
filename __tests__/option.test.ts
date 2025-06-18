@@ -28,6 +28,7 @@ describe("Options", () => {
         "review policy",
         "default greeting",
         ["keyword1", "keyword2"],
+        "",
         ""
       )
 
@@ -71,7 +72,8 @@ describe("Options", () => {
         "review policy",
         "",
         [],
-        undefined
+        undefined,
+        ""
       )
 
       expect(options.checkPath("src/main.ts")).toBe(true)
@@ -105,7 +107,8 @@ describe("Options", () => {
         "",
         "",
         [],
-        undefined
+        undefined,
+        ""
       )
     })
 
@@ -302,6 +305,395 @@ describe("Options", () => {
         expect(options.getFileType("/home/user/project/main.py")).toBe("python")
         expect(options.getFileType("./config/database.sql")).toBe("sql")
       })
+    })
+  })
+
+  describe("getFileTypePrompt", () => {
+    it("should return empty string when no file type prompts are configured", () => {
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        ""
+      )
+
+      expect(options.getFileTypePrompt("app.js")).toBe("")
+      expect(options.getFileTypePrompt("main.py")).toBe("")
+    })
+
+    it("should return the correct prompt for configured file types", () => {
+      const fileTypePrompts = `
+javascript: |
+  Focus on ES6+ best practices and modern JavaScript patterns.
+  Check for proper async/await usage and error handling.
+
+python: |
+  Focus on PEP8 compliance and Python best practices.
+  Check for proper type hints and exception handling.
+
+typescript: Focus on type safety and TypeScript best practices.
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      const jsPrompt = options.getFileTypePrompt("app.js")
+      expect(jsPrompt).toContain("Focus on ES6+ best practices")
+      expect(jsPrompt).toContain("Check for proper async/await usage")
+
+      const pyPrompt = options.getFileTypePrompt("main.py")
+      expect(pyPrompt).toContain("Focus on PEP8 compliance")
+      expect(pyPrompt).toContain("Check for proper type hints")
+
+      const tsPrompt = options.getFileTypePrompt("app.ts")
+      expect(tsPrompt).toBe(
+        "Focus on type safety and TypeScript best practices."
+      )
+    })
+
+    it("should return empty string for file types without configured prompts", () => {
+      const fileTypePrompts = `
+javascript: |
+  JavaScript specific prompt
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      expect(options.getFileTypePrompt("app.js")).toContain(
+        "JavaScript specific prompt"
+      )
+      expect(options.getFileTypePrompt("main.py")).toBe("") // No Python prompt configured
+      expect(options.getFileTypePrompt("unknown.xyz")).toBe("") // Generic file type
+    })
+  })
+
+  describe("parseFileTypePrompts", () => {
+    it("should handle empty input", () => {
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        ""
+      )
+
+      expect(options.fileTypePrompts.size).toBe(0)
+    })
+
+    it("should parse simple key-value pairs", () => {
+      const fileTypePrompts = `
+javascript: Focus on modern JavaScript practices
+python: Focus on PEP8 compliance
+typescript: Focus on type safety
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      expect(options.fileTypePrompts.get("javascript")).toBe(
+        "Focus on modern JavaScript practices"
+      )
+      expect(options.fileTypePrompts.get("python")).toBe(
+        "Focus on PEP8 compliance"
+      )
+      expect(options.fileTypePrompts.get("typescript")).toBe(
+        "Focus on type safety"
+      )
+    })
+
+    it("should parse multiline values with pipe syntax", () => {
+      const fileTypePrompts = `
+javascript: |
+  Focus on ES6+ best practices and modern JavaScript patterns.
+  Check for proper async/await usage and error handling.
+  Verify performance optimizations and security considerations.
+
+python: |
+  Focus on PEP8 compliance and Python best practices.
+  Check for proper type hints and exception handling.
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      const jsPrompt = options.fileTypePrompts.get("javascript")
+      expect(jsPrompt).toContain("Focus on ES6+ best practices")
+      expect(jsPrompt).toContain("Check for proper async/await usage")
+      expect(jsPrompt).toContain("Verify performance optimizations")
+
+      const pyPrompt = options.fileTypePrompts.get("python")
+      expect(pyPrompt).toContain("Focus on PEP8 compliance")
+      expect(pyPrompt).toContain("Check for proper type hints")
+    })
+
+    it("should handle mixed single-line and multiline values", () => {
+      const fileTypePrompts = `
+javascript: |
+  Multiline JavaScript prompt
+  with multiple lines
+
+python: Single line Python prompt
+
+go: |
+  Multiline Go prompt
+  focusing on performance
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      expect(options.fileTypePrompts.get("javascript")).toContain(
+        "Multiline JavaScript prompt"
+      )
+      expect(options.fileTypePrompts.get("python")).toBe(
+        "Single line Python prompt"
+      )
+      expect(options.fileTypePrompts.get("go")).toContain("Multiline Go prompt")
+    })
+
+    it("should ignore comments and empty lines", () => {
+      const fileTypePrompts = `
+# This is a comment
+javascript: JavaScript prompt
+
+# Another comment
+python: |
+  Python prompt
+  # This is not a comment inside multiline value
+  with multiple lines
+
+# Final comment
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      expect(options.fileTypePrompts.get("javascript")).toBe(
+        "JavaScript prompt"
+      )
+      expect(options.fileTypePrompts.get("python")).toContain(
+        "# This is not a comment inside multiline value"
+      )
+    })
+
+    it("should handle indentation correctly", () => {
+      const fileTypePrompts = `
+javascript: |
+  First line
+    Indented line
+  Back to normal indent
+      More indented line
+
+python: |
+\tTab indented line
+\t  Mixed tab and space
+  Space indented line
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      const jsPrompt = options.fileTypePrompts.get("javascript")
+      expect(jsPrompt).toContain("First line")
+      expect(jsPrompt).toContain("  Indented line") // Should preserve relative indentation
+      expect(jsPrompt).toContain("    More indented line")
+
+      const pyPrompt = options.fileTypePrompts.get("python")
+      expect(pyPrompt).toContain("Tab indented line")
+      expect(pyPrompt).toContain("Space indented line")
+    })
+
+    it("should handle malformed YAML gracefully", () => {
+      const fileTypePrompts = `
+javascript: Valid prompt
+invalid_key_without_colon
+python: |
+  Valid multiline
+: invalid_key_starting_with_colon
+go: Another valid prompt
+`
+
+      const options = new Options(
+        false,
+        false,
+        false,
+        [],
+        "",
+        [""],
+        [""],
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        false,
+        "",
+        "",
+        [],
+        undefined,
+        fileTypePrompts
+      )
+
+      expect(options.fileTypePrompts.get("javascript")).toBe("Valid prompt")
+      expect(options.fileTypePrompts.get("python")).toContain("Valid multiline")
+      expect(options.fileTypePrompts.get("go")).toBe("Another valid prompt")
+      expect(options.fileTypePrompts.has("invalid_key_without_colon")).toBe(
+        false
+      )
     })
   })
 })

@@ -35037,7 +35037,8 @@ class Options {
     commentGreeting;
     ignoreKeywords;
     baseURL;
-    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords, baseURL) {
+    fileTypePrompts;
+    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords, baseURL, fileTypePrompts) {
         this.debug = debug;
         this.disableReview = disableReview;
         this.disableReleaseNotes = disableReleaseNotes;
@@ -35058,6 +35059,7 @@ class Options {
         if (baseURL && baseURL.length > 0) {
             this.baseURL = baseURL;
         }
+        this.fileTypePrompts = this.parseFileTypePrompts(fileTypePrompts);
     }
     /**
      * Prints all configuration options using core.info for debugging purposes.
@@ -35219,6 +35221,117 @@ class Options {
         }
         coreExports.debug(`File type not recognized: ${filename} -> generic`);
         return "generic";
+    }
+    /**
+     * Retrieves the file type specific prompt for a given filename.
+     * This prompt will be appended to the system prompt for enhanced review quality.
+     *
+     * @param filename - The name of the file to get the prompt for
+     * @returns The file type specific prompt, or empty string if none exists
+     */
+    getFileTypePrompt(filename) {
+        const fileType = this.getFileType(filename);
+        const prompt = this.fileTypePrompts.get(fileType) || "";
+        if (prompt) {
+            coreExports.debug(`File type prompt found for ${filename} (${fileType}): ${prompt.substring(0, 100)}...`);
+        }
+        return prompt;
+    }
+    /**
+     * Parses the file type prompts configuration from YAML-like format.
+     * Supports simple YAML structure with multiline values using pipe (|) syntax.
+     *
+     * @param input - The YAML-like string containing file type prompts
+     * @returns A Map containing file type to prompt mappings
+     */
+    parseFileTypePrompts(input) {
+        const result = new Map();
+        if (!input || !input.trim()) {
+            coreExports.debug("No file type prompts provided");
+            return result;
+        }
+        try {
+            const lines = input.split("\n");
+            let currentKey = "";
+            let currentValue = "";
+            let inMultilineValue = false;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmed = line.trim();
+                // Skip empty lines and comments (but not inside multiline values)
+                if (!trimmed || (trimmed.startsWith("#") && !inMultilineValue)) {
+                    continue;
+                }
+                // Check for new key definition (key: or key: |)
+                const keyMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(\|?)(.*)$/);
+                if (keyMatch && !line.startsWith(" ")) {
+                    // Save previous key-value pair if exists
+                    if (currentKey && currentValue.trim()) {
+                        result.set(currentKey, currentValue.trim());
+                        coreExports.debug(`Parsed file type prompt: ${currentKey}`);
+                    }
+                    currentKey = keyMatch[1].trim();
+                    const isMultiline = keyMatch[2] === "|";
+                    const inlineValue = keyMatch[3].trim();
+                    if (isMultiline) {
+                        // Start multiline value
+                        inMultilineValue = true;
+                        currentValue = inlineValue ? inlineValue + "\n" : "";
+                    }
+                    else {
+                        // Single line value
+                        inMultilineValue = false;
+                        currentValue = inlineValue;
+                    }
+                }
+                else if (currentKey &&
+                    (line.startsWith("  ") || line.startsWith("\t"))) {
+                    // Continuation of multiline value (indented)
+                    if (inMultilineValue) {
+                        // Remove leading indentation (2 spaces or 1 tab)
+                        const unindented = line.startsWith("  ")
+                            ? line.substring(2)
+                            : line.substring(1);
+                        currentValue += unindented + "\n";
+                    }
+                }
+                else if (currentKey && inMultilineValue && trimmed) {
+                    // Non-indented line in multiline context - end of current value
+                    if (currentValue.trim()) {
+                        result.set(currentKey, currentValue.trim());
+                        coreExports.debug(`Parsed file type prompt: ${currentKey}`);
+                    }
+                    currentKey = "";
+                    currentValue = "";
+                    inMultilineValue = false;
+                    // Process this line as a potential new key
+                    const newKeyMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(\|?)(.*)$/);
+                    if (newKeyMatch) {
+                        currentKey = newKeyMatch[1].trim();
+                        const isMultiline = newKeyMatch[2] === "|";
+                        const inlineValue = newKeyMatch[3].trim();
+                        if (isMultiline) {
+                            inMultilineValue = true;
+                            currentValue = inlineValue ? inlineValue + "\n" : "";
+                        }
+                        else {
+                            inMultilineValue = false;
+                            currentValue = inlineValue;
+                        }
+                    }
+                }
+            }
+            // Save the last key-value pair
+            if (currentKey && currentValue.trim()) {
+                result.set(currentKey, currentValue.trim());
+                coreExports.debug(`Parsed file type prompt: ${currentKey}`);
+            }
+            coreExports.info(`Loaded ${result.size} file type prompts`);
+        }
+        catch (error) {
+            coreExports.warning(`Failed to parse file_type_prompts: ${error}`);
+        }
+        return result;
     }
 }
 class PathFilter {
@@ -35544,10 +35657,16 @@ $content
 $changeSummary
 \`\`\`
 
-if($reviewPolicy) {
+$if(reviewPolicy) {
 ## Review Policy
 \`\`\`
 $reviewPolicy
+\`\`\`
+}
+$if(fileTypePrompt) {
+## File Type Specific Guidelines
+\`\`\`
+$fileTypePrompt
 \`\`\`
 }
 ## IMPORTANT Instructions
@@ -35646,6 +35765,12 @@ $if(content) {
 $content
 \`\`\`
 }
+$if(fileTypePrompt) {
+## File Type Specific Guidelines
+\`\`\`
+$fileTypePrompt
+\`\`\`
+}
 ## Instructions
 Analyze the provided patch format file diff and summarize it according to the following instructions:
 
@@ -35720,7 +35845,8 @@ class Prompts {
             description: ctx.description || "",
             filename: change.filename || "",
             content: this.options.useFileContent ? change.content || "" : "",
-            patch: change.patch
+            patch: change.patch,
+            fileTypePrompt: this.options.getFileTypePrompt(change.filename)
         };
         // cache the first prompt
         prompts.push({
@@ -35750,7 +35876,8 @@ class Prompts {
             changeSummary: change.summary,
             content: this.options.useFileContent ? change.content || "" : "",
             patches: renderFileDiffHunk(diff),
-            reviewPolicy: this.options.reviewPolicy || ""
+            reviewPolicy: this.options.reviewPolicy || "",
+            fileTypePrompt: this.options.getFileTypePrompt(change.filename)
         };
         // cache the first prompt
         prompts.push({
@@ -35784,29 +35911,31 @@ class Prompts {
             // Process conditional blocks
             // Pattern to match if/else blocks and simple if blocks
             // Handle if-else blocks
-            // Process if-else blocks first
-            result = result.replace(/\$if\(([^)]+)\){([^{}]*)}\$else{([^{}]*)}/g, (match, condition, trueContent, falseContent) => {
+            // Process if-else blocks first - handle multiline content
+            result = result.replace(/\$if\(([^)]+)\)\s*\{([\s\S]*?)\}\$else\s*\{([\s\S]*?)\}/g, (match, condition, trueContent, falseContent) => {
                 try {
                     if (!/^(?:[a-zA-Z_][a-zA-Z0-9_]*(?:\s*==\s*(?:'[^']*'|"[^"]*"))?)\s*$/.test(condition.trim())) {
                         return match;
                     }
-                    return this.evaluateCondition(condition, values)
-                        ? trueContent
-                        : falseContent;
+                    const shouldInclude = this.evaluateCondition(condition, values);
+                    coreExports.debug(`Template if-else condition '${condition}' evaluated to: ${shouldInclude}`);
+                    return shouldInclude ? trueContent : falseContent;
                 }
                 catch (error) {
                     coreExports.debug(`Error evaluating condition: ${condition}, ${error}`);
                     return match;
                 }
             });
-            // Then process simple if blocks
-            result = result.replace(/\$if\(([^)]+)\){([^{}]*)}/g, (match, condition, content) => {
+            // Then process simple if blocks - handle multiline content
+            result = result.replace(/\$if\(([^)]+)\)\s*\{([\s\S]*?)\}/g, (match, condition, content) => {
                 try {
                     // Check if the condition is valid
                     if (!/^(?:[a-zA-Z_][a-zA-Z0-9_]*(?:\s*==\s*(?:'[^']*'|"[^"]*"))?)\s*$/.test(condition.trim())) {
                         return match;
                     }
-                    return this.evaluateCondition(condition, values) ? content : "";
+                    const shouldInclude = this.evaluateCondition(condition, values);
+                    coreExports.debug(`Template condition '${condition}' evaluated to: ${shouldInclude}`);
+                    return shouldInclude ? content : "";
                 }
                 catch (error) {
                     coreExports.debug(`Error evaluating condition: ${condition}, ${error}`);
@@ -35841,7 +35970,9 @@ class Prompts {
             const expectedValue = valueToCompare.replace(/^["'](.*)["']$/, "$1");
             return actualValue === expectedValue;
         }
-        return !!values[trimmedCondition];
+        // Check if the value exists and is not empty
+        const value = values[trimmedCondition];
+        return !!(value && value.trim());
     }
     /**
      * Outputs debug information about the current options.
@@ -48541,7 +48672,7 @@ const parseReviewComment = (filename, reviewComment) => {
  * @returns Configured Options instance with all action parameters
  */
 const getOptions = () => {
-    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"), coreExports.getInput("base_url") || undefined);
+    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"), coreExports.getInput("base_url") || undefined, coreExports.getInput("file_type_prompts"));
 };
 const token = process.env.GITHUB_TOKEN || "";
 /**

@@ -1,11 +1,11 @@
-import {
-  getModelName,
-  createChatBotFromModel
-} from "../../src/chatbot/index.js"
 import { jest } from "@jest/globals"
-import { OpenAIClient } from "../../src/chatbot/openai.js"
-import { GeminiClient } from "../../src/chatbot/gemini.js"
 import { ClaudeClient } from "../../src/chatbot/claude.js"
+import { GeminiClient } from "../../src/chatbot/gemini.js"
+import {
+  createChatBotFromModel,
+  getModelName
+} from "../../src/chatbot/index.js"
+import { OpenAIClient } from "../../src/chatbot/openai.js"
 import { Options } from "../../src/option.js"
 
 // Mock creation
@@ -53,7 +53,8 @@ describe("ChatBot functions", () => {
         "default", // reviewPolicy
         "Hello", // commentGreeting
         [], // ignoreKeywords
-        undefined // baseURL
+        undefined, // baseURL
+        "" // getFileTypePrompt
       )
     })
 

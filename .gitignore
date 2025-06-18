@@ -108,3 +108,4 @@ memory-bank
 *.org
 *.swp
 *.swo
+.agent.md

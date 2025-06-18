@@ -240,6 +240,37 @@ inputs:
     required: false
     description: "Specify the URL when using OpenAI-compatible API"
     default: ""
+  file_type_prompts:
+    required: false
+    description: |
+      File type specific prompts in YAML format to enhance review quality.
+      Each file type can have customized review guidelines and focus areas.
+
+      Example:
+      javascript: |
+        Focus on ES6+ best practices and modern JavaScript patterns.
+        Check for proper async/await usage and error handling.
+        Verify performance optimizations and security considerations.
+
+      python: |
+        Focus on PEP8 compliance and Python best practices.
+        Check for proper type hints and exception handling.
+        Verify security vulnerabilities and performance issues.
+
+      typescript: |
+        Focus on type safety and TypeScript best practices.
+        Check for proper interface definitions and generic usage.
+        Verify strict mode compliance and null safety.
+
+      go: |
+        Focus on Go idioms and best practices.
+        Check for proper error handling and goroutine usage.
+        Verify memory efficiency and concurrency patterns.
+
+      Supported file types include: javascript, typescript, python, java, go, rust, 
+      cpp, c, php, ruby, swift, kotlin, scala, shell, sql, html, css, yaml, json, 
+      markdown, docker, and many more.
+    default: ""
 
 runs:
   using: node20
