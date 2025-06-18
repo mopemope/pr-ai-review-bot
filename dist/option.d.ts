@@ -38,6 +38,14 @@ export declare class Options {
      * @returns Boolean indicating whether any ignore keywords were found
      */
     includeIgnoreKeywords(description: string): boolean;
+    /**
+     * Determines the file type based on the filename and extension.
+     * This is used to apply file-type specific prompts and review policies.
+     *
+     * @param filename - The name of the file to analyze
+     * @returns The file type identifier (e.g., 'javascript', 'python', 'generic')
+     */
+    getFileType(filename: string): string;
 }
 export declare class PathFilter {
     private readonly rules;

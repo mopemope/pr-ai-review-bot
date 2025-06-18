@@ -1,5 +1,6 @@
 import { debug, info } from "@actions/core"
 import { minimatch } from "minimatch"
+import * as path from "path"
 
 export class Options {
   debug: boolean
@@ -110,6 +111,131 @@ export class Options {
       }
     }
     return false
+  }
+
+  /**
+   * Determines the file type based on the filename and extension.
+   * This is used to apply file-type specific prompts and review policies.
+   *
+   * @param filename - The name of the file to analyze
+   * @returns The file type identifier (e.g., 'javascript', 'python', 'generic')
+   */
+  getFileType(filename: string): string {
+    const ext = path.extname(filename).toLowerCase()
+    const basename = path.basename(filename).toLowerCase()
+
+    // Special filename patterns
+    if (basename === "dockerfile" || basename.startsWith("dockerfile."))
+      return "docker"
+    if (basename === "makefile") return "makefile"
+    if (basename.endsWith(".yml") || basename.endsWith(".yaml")) return "yaml"
+    if (basename === "package.json" || basename === "package-lock.json")
+      return "json"
+    if (basename === "tsconfig.json" || basename.includes("tsconfig"))
+      return "json"
+    if (basename === "cargo.toml" || basename === "cargo.lock") return "toml"
+    if (basename === "go.mod" || basename === "go.sum") return "go"
+    if (basename === "requirements.txt" || basename === "pyproject.toml")
+      return "python"
+    if (basename === ".gitignore" || basename === ".gitattributes")
+      return "gitignore"
+    if (basename === ".env" || basename.startsWith(".env.")) return "env"
+
+    // Extension-based mapping
+    const extensionMapping: Record<string, string> = {
+      // JavaScript/TypeScript
+      ".js": "javascript",
+      ".jsx": "javascript",
+      ".mjs": "javascript",
+      ".cjs": "javascript",
+      ".ts": "typescript",
+      ".tsx": "typescript",
+      ".d.ts": "typescript",
+
+      // Python
+      ".py": "python",
+      ".pyx": "python",
+      ".pyi": "python",
+      ".pyw": "python",
+
+      // Java/JVM languages
+      ".java": "java",
+      ".kt": "kotlin",
+      ".kts": "kotlin",
+      ".scala": "scala",
+      ".groovy": "groovy",
+
+      // C/C++
+      ".c": "c",
+      ".h": "c",
+      ".cpp": "cpp",
+      ".cxx": "cpp",
+      ".cc": "cpp",
+      ".hpp": "cpp",
+      ".hxx": "cpp",
+      ".hh": "cpp",
+
+      // Other compiled languages
+      ".go": "go",
+      ".rs": "rust",
+      ".swift": "swift",
+      ".cs": "csharp",
+      ".fs": "fsharp",
+      ".vb": "vb",
+
+      // Scripting languages
+      ".php": "php",
+      ".rb": "ruby",
+      ".pl": "perl",
+      ".lua": "lua",
+      ".r": "r",
+
+      // Shell scripts
+      ".sh": "shell",
+      ".bash": "shell",
+      ".zsh": "shell",
+      ".fish": "shell",
+      ".ps1": "powershell",
+
+      // Web technologies
+      ".html": "html",
+      ".htm": "html",
+      ".css": "css",
+      ".scss": "scss",
+      ".sass": "sass",
+      ".less": "less",
+
+      // Data formats
+      ".json": "json",
+      ".xml": "xml",
+      ".yaml": "yaml",
+      ".yml": "yaml",
+      ".toml": "toml",
+      ".ini": "ini",
+      ".cfg": "ini",
+      ".conf": "config",
+
+      // Database
+      ".sql": "sql",
+
+      // Documentation
+      ".md": "markdown",
+      ".markdown": "markdown",
+      ".rst": "rst",
+      ".tex": "latex",
+
+      // Configuration
+      ".dockerfile": "docker"
+    }
+
+    const fileType = extensionMapping[ext]
+    if (fileType) {
+      debug(`File type detected: ${filename} -> ${fileType}`)
+      return fileType
+    }
+
+    debug(`File type not recognized: ${filename} -> generic`)
+    return "generic"
   }
 }
 
