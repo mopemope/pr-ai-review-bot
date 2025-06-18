@@ -63,10 +63,16 @@ $content
 $changeSummary
 \`\`\`
 
-if($reviewPolicy) {
+$if(reviewPolicy) {
 ## Review Policy
 \`\`\`
 $reviewPolicy
+\`\`\`
+}
+$if(fileTypePrompt) {
+## File Type Specific Guidelines
+\`\`\`
+$fileTypePrompt
 \`\`\`
 }
 ## IMPORTANT Instructions
@@ -167,6 +173,12 @@ $if(content) {
 $content
 \`\`\`
 }
+$if(fileTypePrompt) {
+## File Type Specific Guidelines
+\`\`\`
+$fileTypePrompt
+\`\`\`
+}
 ## Instructions
 Analyze the provided patch format file diff and summarize it according to the following instructions:
 
@@ -256,7 +268,8 @@ export class Prompts {
       description: ctx.description || "",
       filename: change.filename || "",
       content: this.options.useFileContent ? change.content || "" : "",
-      patch: change.patch
+      patch: change.patch,
+      fileTypePrompt: this.options.getFileTypePrompt(change.filename)
     }
 
     // cache the first prompt
@@ -293,7 +306,8 @@ export class Prompts {
       changeSummary: change.summary,
       content: this.options.useFileContent ? change.content || "" : "",
       patches: renderFileDiffHunk(diff),
-      reviewPolicy: this.options.reviewPolicy || ""
+      reviewPolicy: this.options.reviewPolicy || "",
+      fileTypePrompt: this.options.getFileTypePrompt(change.filename)
     }
 
     // cache the first prompt
@@ -334,9 +348,9 @@ export class Prompts {
       // Process conditional blocks
       // Pattern to match if/else blocks and simple if blocks
       // Handle if-else blocks
-      // Process if-else blocks first
+      // Process if-else blocks first - handle multiline content
       result = result.replace(
-        /\$if\(([^)]+)\){([^{}]*)}\$else{([^{}]*)}/g,
+        /\$if\(([^)]+)\)\s*\{([\s\S]*?)\}\$else\s*\{([\s\S]*?)\}/g,
         (
           match: string,
           condition: string,
@@ -351,9 +365,11 @@ export class Prompts {
             ) {
               return match
             }
-            return this.evaluateCondition(condition, values)
-              ? trueContent
-              : falseContent
+            const shouldInclude = this.evaluateCondition(condition, values)
+            debug(
+              `Template if-else condition '${condition}' evaluated to: ${shouldInclude}`
+            )
+            return shouldInclude ? trueContent : falseContent
           } catch (error) {
             debug(`Error evaluating condition: ${condition}, ${error}`)
             return match
@@ -361,9 +377,9 @@ export class Prompts {
         }
       )
 
-      // Then process simple if blocks
+      // Then process simple if blocks - handle multiline content
       result = result.replace(
-        /\$if\(([^)]+)\){([^{}]*)}/g,
+        /\$if\(([^)]+)\)\s*\{([\s\S]*?)\}/g,
         (match: string, condition: string, content: string) => {
           try {
             // Check if the condition is valid
@@ -374,7 +390,11 @@ export class Prompts {
             ) {
               return match
             }
-            return this.evaluateCondition(condition, values) ? content : ""
+            const shouldInclude = this.evaluateCondition(condition, values)
+            debug(
+              `Template condition '${condition}' evaluated to: ${shouldInclude}`
+            )
+            return shouldInclude ? content : ""
           } catch (error) {
             debug(`Error evaluating condition: ${condition}, ${error}`)
             return match
@@ -417,7 +437,9 @@ export class Prompts {
       return actualValue === expectedValue
     }
 
-    return !!values[trimmedCondition]
+    // Check if the value exists and is not empty
+    const value = values[trimmedCondition]
+    return !!(value && value.trim())
   }
 
   /**

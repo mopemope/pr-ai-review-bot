@@ -1,5 +1,6 @@
-import { debug, info } from "@actions/core"
+import { debug, info, warning } from "@actions/core"
 import { minimatch } from "minimatch"
+import * as path from "path"
 
 export class Options {
   debug: boolean
@@ -20,6 +21,7 @@ export class Options {
   commentGreeting: string
   ignoreKeywords: string[]
   baseURL: string | undefined
+  fileTypePrompts: Map<string, string>
 
   constructor(
     debug: boolean,
@@ -38,7 +40,8 @@ export class Options {
     reviewPolicy: string,
     commentGreeting: string,
     ignoreKeywords: string[],
-    baseURL: string | undefined
+    baseURL: string | undefined,
+    fileTypePrompts: string
   ) {
     this.debug = debug
     this.disableReview = disableReview
@@ -60,6 +63,7 @@ export class Options {
     if (baseURL && baseURL.length > 0) {
       this.baseURL = baseURL
     }
+    this.fileTypePrompts = this.parseFileTypePrompts(fileTypePrompts)
   }
 
   /**
@@ -110,6 +114,259 @@ export class Options {
       }
     }
     return false
+  }
+
+  /**
+   * Determines the file type based on the filename and extension.
+   * This is used to apply file-type specific prompts and review policies.
+   *
+   * @param filename - The name of the file to analyze
+   * @returns The file type identifier (e.g., 'javascript', 'python', 'generic')
+   */
+  getFileType(filename: string): string {
+    const ext = path.extname(filename).toLowerCase()
+    const basename = path.basename(filename).toLowerCase()
+
+    // Special filename patterns
+    if (basename === "dockerfile" || basename.startsWith("dockerfile."))
+      return "docker"
+    if (basename === "makefile") return "makefile"
+    if (basename.endsWith(".yml") || basename.endsWith(".yaml")) return "yaml"
+    if (basename === "package.json" || basename === "package-lock.json")
+      return "json"
+    if (basename === "tsconfig.json" || basename.includes("tsconfig"))
+      return "json"
+    if (basename === "cargo.toml" || basename === "cargo.lock") return "toml"
+    if (basename === "go.mod" || basename === "go.sum") return "go"
+    if (basename === "requirements.txt" || basename === "pyproject.toml")
+      return "python"
+    if (basename === ".gitignore" || basename === ".gitattributes")
+      return "gitignore"
+    if (basename === ".env" || basename.startsWith(".env.")) return "env"
+
+    // Extension-based mapping
+    const extensionMapping: Record<string, string> = {
+      // JavaScript/TypeScript
+      ".js": "javascript",
+      ".jsx": "javascript",
+      ".mjs": "javascript",
+      ".cjs": "javascript",
+      ".ts": "typescript",
+      ".tsx": "typescript",
+      ".d.ts": "typescript",
+
+      // Python
+      ".py": "python",
+      ".pyx": "python",
+      ".pyi": "python",
+      ".pyw": "python",
+
+      // Java/JVM languages
+      ".java": "java",
+      ".kt": "kotlin",
+      ".kts": "kotlin",
+      ".scala": "scala",
+      ".groovy": "groovy",
+
+      // C/C++
+      ".c": "c",
+      ".h": "c",
+      ".cpp": "cpp",
+      ".cxx": "cpp",
+      ".cc": "cpp",
+      ".hpp": "cpp",
+      ".hxx": "cpp",
+      ".hh": "cpp",
+
+      // Other compiled languages
+      ".go": "go",
+      ".rs": "rust",
+      ".swift": "swift",
+      ".cs": "csharp",
+      ".fs": "fsharp",
+      ".vb": "vb",
+
+      // Scripting languages
+      ".php": "php",
+      ".rb": "ruby",
+      ".pl": "perl",
+      ".lua": "lua",
+      ".r": "r",
+
+      // Shell scripts
+      ".sh": "shell",
+      ".bash": "shell",
+      ".zsh": "shell",
+      ".fish": "shell",
+      ".ps1": "powershell",
+
+      // Web technologies
+      ".html": "html",
+      ".htm": "html",
+      ".css": "css",
+      ".scss": "scss",
+      ".sass": "sass",
+      ".less": "less",
+
+      // Data formats
+      ".json": "json",
+      ".xml": "xml",
+      ".yaml": "yaml",
+      ".yml": "yaml",
+      ".toml": "toml",
+      ".ini": "ini",
+      ".cfg": "ini",
+      ".conf": "config",
+
+      // Database
+      ".sql": "sql",
+
+      // Documentation
+      ".md": "markdown",
+      ".markdown": "markdown",
+      ".rst": "rst",
+      ".tex": "latex",
+
+      // Configuration
+      ".dockerfile": "docker"
+    }
+
+    const fileType = extensionMapping[ext]
+    if (fileType) {
+      debug(`File type detected: ${filename} -> ${fileType}`)
+      return fileType
+    }
+
+    debug(`File type not recognized: ${filename} -> generic`)
+    return "generic"
+  }
+
+  /**
+   * Retrieves the file type specific prompt for a given filename.
+   * This prompt will be appended to the system prompt for enhanced review quality.
+   *
+   * @param filename - The name of the file to get the prompt for
+   * @returns The file type specific prompt, or empty string if none exists
+   */
+  getFileTypePrompt(filename: string): string {
+    const fileType = this.getFileType(filename)
+    const prompt = this.fileTypePrompts.get(fileType) || ""
+    if (prompt) {
+      debug(
+        `File type prompt found for ${filename} (${fileType}): ${prompt.substring(0, 100)}...`
+      )
+    }
+    return prompt
+  }
+
+  /**
+   * Parses the file type prompts configuration from YAML-like format.
+   * Supports simple YAML structure with multiline values using pipe (|) syntax.
+   *
+   * @param input - The YAML-like string containing file type prompts
+   * @returns A Map containing file type to prompt mappings
+   */
+  private parseFileTypePrompts(input: string): Map<string, string> {
+    const result = new Map<string, string>()
+
+    if (!input || !input.trim()) {
+      debug("No file type prompts provided")
+      return result
+    }
+
+    try {
+      const lines = input.split("\n")
+      let currentKey = ""
+      let currentValue = ""
+      let inMultilineValue = false
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        const trimmed = line.trim()
+
+        // Skip empty lines and comments (but not inside multiline values)
+        if (!trimmed || (trimmed.startsWith("#") && !inMultilineValue)) {
+          continue
+        }
+
+        // Check for new key definition (key: or key: |)
+        const keyMatch = line.match(
+          /^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(\|?)(.*)$/
+        )
+        if (keyMatch && !line.startsWith(" ")) {
+          // Save previous key-value pair if exists
+          if (currentKey && currentValue.trim()) {
+            result.set(currentKey, currentValue.trim())
+            debug(`Parsed file type prompt: ${currentKey}`)
+          }
+
+          currentKey = keyMatch[1].trim()
+          const isMultiline = keyMatch[2] === "|"
+          const inlineValue = keyMatch[3].trim()
+
+          if (isMultiline) {
+            // Start multiline value
+            inMultilineValue = true
+            currentValue = inlineValue ? inlineValue + "\n" : ""
+          } else {
+            // Single line value
+            inMultilineValue = false
+            currentValue = inlineValue
+          }
+        } else if (
+          currentKey &&
+          (line.startsWith("  ") || line.startsWith("\t"))
+        ) {
+          // Continuation of multiline value (indented)
+          if (inMultilineValue) {
+            // Remove leading indentation (2 spaces or 1 tab)
+            const unindented = line.startsWith("  ")
+              ? line.substring(2)
+              : line.substring(1)
+            currentValue += unindented + "\n"
+          }
+        } else if (currentKey && inMultilineValue && trimmed) {
+          // Non-indented line in multiline context - end of current value
+          if (currentValue.trim()) {
+            result.set(currentKey, currentValue.trim())
+            debug(`Parsed file type prompt: ${currentKey}`)
+          }
+          currentKey = ""
+          currentValue = ""
+          inMultilineValue = false
+
+          // Process this line as a potential new key
+          const newKeyMatch = line.match(
+            /^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(\|?)(.*)$/
+          )
+          if (newKeyMatch) {
+            currentKey = newKeyMatch[1].trim()
+            const isMultiline = newKeyMatch[2] === "|"
+            const inlineValue = newKeyMatch[3].trim()
+
+            if (isMultiline) {
+              inMultilineValue = true
+              currentValue = inlineValue ? inlineValue + "\n" : ""
+            } else {
+              inMultilineValue = false
+              currentValue = inlineValue
+            }
+          }
+        }
+      }
+
+      // Save the last key-value pair
+      if (currentKey && currentValue.trim()) {
+        result.set(currentKey, currentValue.trim())
+        debug(`Parsed file type prompt: ${currentKey}`)
+      }
+
+      info(`Loaded ${result.size} file type prompts`)
+    } catch (error) {
+      warning(`Failed to parse file_type_prompts: ${error}`)
+    }
+
+    return result
   }
 }
 

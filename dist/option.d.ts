@@ -17,7 +17,8 @@ export declare class Options {
     commentGreeting: string;
     ignoreKeywords: string[];
     baseURL: string | undefined;
-    constructor(debug: boolean, disableReview: boolean, disableReleaseNotes: boolean, pathFilters: string[] | null, systemPrompt: string, summaryModel: string[], model: string[], retries: string, timeoutMS: string, language: string, summarizeReleaseNotes: string, releaseNotesTitle: string, useFileContent: boolean, reviewPolicy: string, commentGreeting: string, ignoreKeywords: string[], baseURL: string | undefined);
+    fileTypePrompts: Map<string, string>;
+    constructor(debug: boolean, disableReview: boolean, disableReleaseNotes: boolean, pathFilters: string[] | null, systemPrompt: string, summaryModel: string[], model: string[], retries: string, timeoutMS: string, language: string, summarizeReleaseNotes: string, releaseNotesTitle: string, useFileContent: boolean, reviewPolicy: string, commentGreeting: string, ignoreKeywords: string[], baseURL: string | undefined, fileTypePrompts: string);
     /**
      * Prints all configuration options using core.info for debugging purposes.
      * Displays each option value in the GitHub Actions log.
@@ -38,6 +39,30 @@ export declare class Options {
      * @returns Boolean indicating whether any ignore keywords were found
      */
     includeIgnoreKeywords(description: string): boolean;
+    /**
+     * Determines the file type based on the filename and extension.
+     * This is used to apply file-type specific prompts and review policies.
+     *
+     * @param filename - The name of the file to analyze
+     * @returns The file type identifier (e.g., 'javascript', 'python', 'generic')
+     */
+    getFileType(filename: string): string;
+    /**
+     * Retrieves the file type specific prompt for a given filename.
+     * This prompt will be appended to the system prompt for enhanced review quality.
+     *
+     * @param filename - The name of the file to get the prompt for
+     * @returns The file type specific prompt, or empty string if none exists
+     */
+    getFileTypePrompt(filename: string): string;
+    /**
+     * Parses the file type prompts configuration from YAML-like format.
+     * Supports simple YAML structure with multiline values using pipe (|) syntax.
+     *
+     * @param input - The YAML-like string containing file type prompts
+     * @returns A Map containing file type to prompt mappings
+     */
+    private parseFileTypePrompts;
 }
 export declare class PathFilter {
     private readonly rules;

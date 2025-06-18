@@ -58,10 +58,15 @@ jobs:
         uses: ./
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LOCAL_ACTION: "true"
         with:
           debug: true
-          summary_model: "google/gemini-2.0-flash-lite"
-          model: "google/gemini-2.0-flash-exp"
+          base_url: "https://openrouter.ai/api/v1"
+          use_file_content: false
+          summary_model: |
+            openrouter/deepseek/deepseek-chat-v3-0324:free
+          model: |
+            openrouter/deepseek/deepseek-chat-v3-0324:free
           language: "japanese"

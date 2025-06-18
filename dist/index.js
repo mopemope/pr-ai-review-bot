@@ -1,11 +1,12 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
-import require$$1 from 'fs';
-import require$$1$5 from 'path';
+import require$$1$1 from 'fs';
+import * as require$$1 from 'path';
+import require$$1__default from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
 import require$$0$4 from 'net';
-import require$$1$1 from 'tls';
+import require$$1$2 from 'tls';
 import require$$4$1 from 'events';
 import require$$0$3 from 'assert';
 import require$$0$2 from 'util';
@@ -14,14 +15,14 @@ import require$$7 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
 import require$$0$7 from 'node:stream';
-import require$$1$2 from 'node:util';
+import require$$1$3 from 'node:util';
 import require$$0$6 from 'node:events';
 import require$$0$8 from 'worker_threads';
 import require$$2$2 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4$2 from 'async_hooks';
-import require$$1$3 from 'console';
-import require$$1$4 from 'url';
+import require$$1$4 from 'console';
+import require$$1$5 from 'url';
 import require$$3$2 from 'zlib';
 import require$$6 from 'string_decoder';
 import require$$0$9 from 'diagnostics_channel';
@@ -252,7 +253,7 @@ function requireFileCommand () {
 	// We use any as a valid input type
 	/* eslint-disable @typescript-eslint/no-explicit-any */
 	const crypto = __importStar(require$$0$1);
-	const fs = __importStar(require$$1);
+	const fs = __importStar(require$$1$1);
 	const os = __importStar(require$$0);
 	const utils_1 = requireUtils$3();
 	function issueFileCommand(command, message) {
@@ -402,7 +403,7 @@ var hasRequiredTunnel$1;
 function requireTunnel$1 () {
 	if (hasRequiredTunnel$1) return tunnel$1;
 	hasRequiredTunnel$1 = 1;
-	var tls = require$$1$1;
+	var tls = require$$1$2;
 	var http = require$$2$1;
 	var https = require$$3$1;
 	var events = require$$4$1;
@@ -1784,7 +1785,7 @@ function requireSbmh () {
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$3.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -1993,7 +1994,7 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$3.inherits;
 	const ReadableStream = require$$0$7.Readable;
 
 	function PartStream (opts) {
@@ -2039,7 +2040,7 @@ function requireHeaderParser () {
 	hasRequiredHeaderParser = 1;
 
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$3.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -2147,7 +2148,7 @@ function requireDicer () {
 	hasRequiredDicer = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$3.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -2724,7 +2725,7 @@ function requireMultipart () {
 	//     -- this will require modifications to utils.parseParams
 
 	const { Readable } = require$$0$7;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$3;
 
 	const Dicer = requireDicer();
 
@@ -3290,7 +3291,7 @@ function requireMain () {
 	hasRequiredMain = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$3;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -8114,7 +8115,7 @@ function requireConnect () {
 	    let socket;
 	    if (protocol === 'https:') {
 	      if (!tls) {
-	        tls = require$$1$1;
+	        tls = require$$1$2;
 	      }
 	      servername = servername || options.servername || util.getServerName(host) || null;
 
@@ -14138,7 +14139,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = require$$0$5;
-	const { Console } = require$$1$3;
+	const { Console } = require$$1$4;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -14365,7 +14366,7 @@ function requireProxyAgent () {
 	hasRequiredProxyAgent = 1;
 
 	const { kProxy, kClose, kDestroy, kInterceptors } = requireSymbols$4();
-	const { URL } = require$$1$4;
+	const { URL } = require$$1$5;
 	const Agent = requireAgent();
 	const Pool = requirePool();
 	const DispatcherBase = requireDispatcherBase();
@@ -25230,7 +25231,7 @@ function requireSummary () {
 		Object.defineProperty(exports, "__esModule", { value: true });
 		exports.summary = exports.markdownSummary = exports.SUMMARY_DOCS_URL = exports.SUMMARY_ENV_VAR = void 0;
 		const os_1 = require$$0;
-		const fs_1 = require$$1;
+		const fs_1 = require$$1$1;
 		const { access, appendFile, writeFile } = fs_1.promises;
 		exports.SUMMARY_ENV_VAR = 'GITHUB_STEP_SUMMARY';
 		exports.SUMMARY_DOCS_URL = 'https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary';
@@ -25536,7 +25537,7 @@ function requirePathUtils () {
 	};
 	Object.defineProperty(pathUtils, "__esModule", { value: true });
 	pathUtils.toPlatformPath = pathUtils.toWin32Path = pathUtils.toPosixPath = void 0;
-	const path = __importStar(require$$1$5);
+	const path = __importStar(require$$1__default);
 	/**
 	 * toPosixPath converts the given path to the posix form. On Windows, \\ will be
 	 * replaced with /.
@@ -25622,8 +25623,8 @@ function requireIoUtil () {
 		var _a;
 		Object.defineProperty(exports, "__esModule", { value: true });
 		exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
-		const fs = __importStar(require$$1);
-		const path = __importStar(require$$1$5);
+		const fs = __importStar(require$$1$1);
+		const path = __importStar(require$$1__default);
 		_a = fs.promises
 		// export const {open} = 'fs'
 		, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
@@ -25813,7 +25814,7 @@ function requireIo () {
 	Object.defineProperty(io, "__esModule", { value: true });
 	io.findInPath = io.which = io.mkdirP = io.rmRF = io.mv = io.cp = void 0;
 	const assert_1 = require$$0$3;
-	const path = __importStar(require$$1$5);
+	const path = __importStar(require$$1__default);
 	const ioUtil = __importStar(requireIoUtil());
 	/**
 	 * Copies a file or folder.
@@ -26121,7 +26122,7 @@ function requireToolrunner () {
 	const os = __importStar(require$$0);
 	const events = __importStar(require$$4$1);
 	const child = __importStar(require$$2$3);
-	const path = __importStar(require$$1$5);
+	const path = __importStar(require$$1__default);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
 	const timers_1 = require$$6$1;
@@ -26965,7 +26966,7 @@ function requireCore () {
 		const file_command_1 = requireFileCommand();
 		const utils_1 = requireUtils$3();
 		const os = __importStar(require$$0);
-		const path = __importStar(require$$1$5);
+		const path = __importStar(require$$1__default);
 		const oidc_utils_1 = requireOidcUtils();
 		/**
 		 * The code to exit an action
@@ -27287,7 +27288,7 @@ function requireContext () {
 	hasRequiredContext = 1;
 	Object.defineProperty(context, "__esModule", { value: true });
 	context.Context = void 0;
-	const fs_1 = require$$1;
+	const fs_1 = require$$1$1;
 	const os_1 = require$$0;
 	class Context {
 	    /**
@@ -35036,7 +35037,8 @@ class Options {
     commentGreeting;
     ignoreKeywords;
     baseURL;
-    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords, baseURL) {
+    fileTypePrompts;
+    constructor(debug, disableReview, disableReleaseNotes, pathFilters, systemPrompt, summaryModel, model, retries, timeoutMS, language, summarizeReleaseNotes, releaseNotesTitle, useFileContent, reviewPolicy, commentGreeting, ignoreKeywords, baseURL, fileTypePrompts) {
         this.debug = debug;
         this.disableReview = disableReview;
         this.disableReleaseNotes = disableReleaseNotes;
@@ -35057,6 +35059,7 @@ class Options {
         if (baseURL && baseURL.length > 0) {
             this.baseURL = baseURL;
         }
+        this.fileTypePrompts = this.parseFileTypePrompts(fileTypePrompts);
     }
     /**
      * Prints all configuration options using core.info for debugging purposes.
@@ -35104,6 +35107,231 @@ class Options {
             }
         }
         return false;
+    }
+    /**
+     * Determines the file type based on the filename and extension.
+     * This is used to apply file-type specific prompts and review policies.
+     *
+     * @param filename - The name of the file to analyze
+     * @returns The file type identifier (e.g., 'javascript', 'python', 'generic')
+     */
+    getFileType(filename) {
+        const ext = require$$1.extname(filename).toLowerCase();
+        const basename = require$$1.basename(filename).toLowerCase();
+        // Special filename patterns
+        if (basename === "dockerfile" || basename.startsWith("dockerfile."))
+            return "docker";
+        if (basename === "makefile")
+            return "makefile";
+        if (basename.endsWith(".yml") || basename.endsWith(".yaml"))
+            return "yaml";
+        if (basename === "package.json" || basename === "package-lock.json")
+            return "json";
+        if (basename === "tsconfig.json" || basename.includes("tsconfig"))
+            return "json";
+        if (basename === "cargo.toml" || basename === "cargo.lock")
+            return "toml";
+        if (basename === "go.mod" || basename === "go.sum")
+            return "go";
+        if (basename === "requirements.txt" || basename === "pyproject.toml")
+            return "python";
+        if (basename === ".gitignore" || basename === ".gitattributes")
+            return "gitignore";
+        if (basename === ".env" || basename.startsWith(".env."))
+            return "env";
+        // Extension-based mapping
+        const extensionMapping = {
+            // JavaScript/TypeScript
+            ".js": "javascript",
+            ".jsx": "javascript",
+            ".mjs": "javascript",
+            ".cjs": "javascript",
+            ".ts": "typescript",
+            ".tsx": "typescript",
+            ".d.ts": "typescript",
+            // Python
+            ".py": "python",
+            ".pyx": "python",
+            ".pyi": "python",
+            ".pyw": "python",
+            // Java/JVM languages
+            ".java": "java",
+            ".kt": "kotlin",
+            ".kts": "kotlin",
+            ".scala": "scala",
+            ".groovy": "groovy",
+            // C/C++
+            ".c": "c",
+            ".h": "c",
+            ".cpp": "cpp",
+            ".cxx": "cpp",
+            ".cc": "cpp",
+            ".hpp": "cpp",
+            ".hxx": "cpp",
+            ".hh": "cpp",
+            // Other compiled languages
+            ".go": "go",
+            ".rs": "rust",
+            ".swift": "swift",
+            ".cs": "csharp",
+            ".fs": "fsharp",
+            ".vb": "vb",
+            // Scripting languages
+            ".php": "php",
+            ".rb": "ruby",
+            ".pl": "perl",
+            ".lua": "lua",
+            ".r": "r",
+            // Shell scripts
+            ".sh": "shell",
+            ".bash": "shell",
+            ".zsh": "shell",
+            ".fish": "shell",
+            ".ps1": "powershell",
+            // Web technologies
+            ".html": "html",
+            ".htm": "html",
+            ".css": "css",
+            ".scss": "scss",
+            ".sass": "sass",
+            ".less": "less",
+            // Data formats
+            ".json": "json",
+            ".xml": "xml",
+            ".yaml": "yaml",
+            ".yml": "yaml",
+            ".toml": "toml",
+            ".ini": "ini",
+            ".cfg": "ini",
+            ".conf": "config",
+            // Database
+            ".sql": "sql",
+            // Documentation
+            ".md": "markdown",
+            ".markdown": "markdown",
+            ".rst": "rst",
+            ".tex": "latex",
+            // Configuration
+            ".dockerfile": "docker"
+        };
+        const fileType = extensionMapping[ext];
+        if (fileType) {
+            coreExports.debug(`File type detected: ${filename} -> ${fileType}`);
+            return fileType;
+        }
+        coreExports.debug(`File type not recognized: ${filename} -> generic`);
+        return "generic";
+    }
+    /**
+     * Retrieves the file type specific prompt for a given filename.
+     * This prompt will be appended to the system prompt for enhanced review quality.
+     *
+     * @param filename - The name of the file to get the prompt for
+     * @returns The file type specific prompt, or empty string if none exists
+     */
+    getFileTypePrompt(filename) {
+        const fileType = this.getFileType(filename);
+        const prompt = this.fileTypePrompts.get(fileType) || "";
+        if (prompt) {
+            coreExports.debug(`File type prompt found for ${filename} (${fileType}): ${prompt.substring(0, 100)}...`);
+        }
+        return prompt;
+    }
+    /**
+     * Parses the file type prompts configuration from YAML-like format.
+     * Supports simple YAML structure with multiline values using pipe (|) syntax.
+     *
+     * @param input - The YAML-like string containing file type prompts
+     * @returns A Map containing file type to prompt mappings
+     */
+    parseFileTypePrompts(input) {
+        const result = new Map();
+        if (!input || !input.trim()) {
+            coreExports.debug("No file type prompts provided");
+            return result;
+        }
+        try {
+            const lines = input.split("\n");
+            let currentKey = "";
+            let currentValue = "";
+            let inMultilineValue = false;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmed = line.trim();
+                // Skip empty lines and comments (but not inside multiline values)
+                if (!trimmed || (trimmed.startsWith("#") && !inMultilineValue)) {
+                    continue;
+                }
+                // Check for new key definition (key: or key: |)
+                const keyMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(\|?)(.*)$/);
+                if (keyMatch && !line.startsWith(" ")) {
+                    // Save previous key-value pair if exists
+                    if (currentKey && currentValue.trim()) {
+                        result.set(currentKey, currentValue.trim());
+                        coreExports.debug(`Parsed file type prompt: ${currentKey}`);
+                    }
+                    currentKey = keyMatch[1].trim();
+                    const isMultiline = keyMatch[2] === "|";
+                    const inlineValue = keyMatch[3].trim();
+                    if (isMultiline) {
+                        // Start multiline value
+                        inMultilineValue = true;
+                        currentValue = inlineValue ? inlineValue + "\n" : "";
+                    }
+                    else {
+                        // Single line value
+                        inMultilineValue = false;
+                        currentValue = inlineValue;
+                    }
+                }
+                else if (currentKey &&
+                    (line.startsWith("  ") || line.startsWith("\t"))) {
+                    // Continuation of multiline value (indented)
+                    if (inMultilineValue) {
+                        // Remove leading indentation (2 spaces or 1 tab)
+                        const unindented = line.startsWith("  ")
+                            ? line.substring(2)
+                            : line.substring(1);
+                        currentValue += unindented + "\n";
+                    }
+                }
+                else if (currentKey && inMultilineValue && trimmed) {
+                    // Non-indented line in multiline context - end of current value
+                    if (currentValue.trim()) {
+                        result.set(currentKey, currentValue.trim());
+                        coreExports.debug(`Parsed file type prompt: ${currentKey}`);
+                    }
+                    currentKey = "";
+                    currentValue = "";
+                    inMultilineValue = false;
+                    // Process this line as a potential new key
+                    const newKeyMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(\|?)(.*)$/);
+                    if (newKeyMatch) {
+                        currentKey = newKeyMatch[1].trim();
+                        const isMultiline = newKeyMatch[2] === "|";
+                        const inlineValue = newKeyMatch[3].trim();
+                        if (isMultiline) {
+                            inMultilineValue = true;
+                            currentValue = inlineValue ? inlineValue + "\n" : "";
+                        }
+                        else {
+                            inMultilineValue = false;
+                            currentValue = inlineValue;
+                        }
+                    }
+                }
+            }
+            // Save the last key-value pair
+            if (currentKey && currentValue.trim()) {
+                result.set(currentKey, currentValue.trim());
+                coreExports.debug(`Parsed file type prompt: ${currentKey}`);
+            }
+            coreExports.info(`Loaded ${result.size} file type prompts`);
+        }
+        catch (error) {
+            coreExports.warning(`Failed to parse file_type_prompts: ${error}`);
+        }
+        return result;
     }
 }
 class PathFilter {
@@ -35429,10 +35657,16 @@ $content
 $changeSummary
 \`\`\`
 
-if($reviewPolicy) {
+$if(reviewPolicy) {
 ## Review Policy
 \`\`\`
 $reviewPolicy
+\`\`\`
+}
+$if(fileTypePrompt) {
+## File Type Specific Guidelines
+\`\`\`
+$fileTypePrompt
 \`\`\`
 }
 ## IMPORTANT Instructions
@@ -35531,6 +35765,12 @@ $if(content) {
 $content
 \`\`\`
 }
+$if(fileTypePrompt) {
+## File Type Specific Guidelines
+\`\`\`
+$fileTypePrompt
+\`\`\`
+}
 ## Instructions
 Analyze the provided patch format file diff and summarize it according to the following instructions:
 
@@ -35605,7 +35845,8 @@ class Prompts {
             description: ctx.description || "",
             filename: change.filename || "",
             content: this.options.useFileContent ? change.content || "" : "",
-            patch: change.patch
+            patch: change.patch,
+            fileTypePrompt: this.options.getFileTypePrompt(change.filename)
         };
         // cache the first prompt
         prompts.push({
@@ -35635,7 +35876,8 @@ class Prompts {
             changeSummary: change.summary,
             content: this.options.useFileContent ? change.content || "" : "",
             patches: renderFileDiffHunk(diff),
-            reviewPolicy: this.options.reviewPolicy || ""
+            reviewPolicy: this.options.reviewPolicy || "",
+            fileTypePrompt: this.options.getFileTypePrompt(change.filename)
         };
         // cache the first prompt
         prompts.push({
@@ -35669,29 +35911,31 @@ class Prompts {
             // Process conditional blocks
             // Pattern to match if/else blocks and simple if blocks
             // Handle if-else blocks
-            // Process if-else blocks first
-            result = result.replace(/\$if\(([^)]+)\){([^{}]*)}\$else{([^{}]*)}/g, (match, condition, trueContent, falseContent) => {
+            // Process if-else blocks first - handle multiline content
+            result = result.replace(/\$if\(([^)]+)\)\s*\{([\s\S]*?)\}\$else\s*\{([\s\S]*?)\}/g, (match, condition, trueContent, falseContent) => {
                 try {
                     if (!/^(?:[a-zA-Z_][a-zA-Z0-9_]*(?:\s*==\s*(?:'[^']*'|"[^"]*"))?)\s*$/.test(condition.trim())) {
                         return match;
                     }
-                    return this.evaluateCondition(condition, values)
-                        ? trueContent
-                        : falseContent;
+                    const shouldInclude = this.evaluateCondition(condition, values);
+                    coreExports.debug(`Template if-else condition '${condition}' evaluated to: ${shouldInclude}`);
+                    return shouldInclude ? trueContent : falseContent;
                 }
                 catch (error) {
                     coreExports.debug(`Error evaluating condition: ${condition}, ${error}`);
                     return match;
                 }
             });
-            // Then process simple if blocks
-            result = result.replace(/\$if\(([^)]+)\){([^{}]*)}/g, (match, condition, content) => {
+            // Then process simple if blocks - handle multiline content
+            result = result.replace(/\$if\(([^)]+)\)\s*\{([\s\S]*?)\}/g, (match, condition, content) => {
                 try {
                     // Check if the condition is valid
                     if (!/^(?:[a-zA-Z_][a-zA-Z0-9_]*(?:\s*==\s*(?:'[^']*'|"[^"]*"))?)\s*$/.test(condition.trim())) {
                         return match;
                     }
-                    return this.evaluateCondition(condition, values) ? content : "";
+                    const shouldInclude = this.evaluateCondition(condition, values);
+                    coreExports.debug(`Template condition '${condition}' evaluated to: ${shouldInclude}`);
+                    return shouldInclude ? content : "";
                 }
                 catch (error) {
                     coreExports.debug(`Error evaluating condition: ${condition}, ${error}`);
@@ -35726,7 +35970,9 @@ class Prompts {
             const expectedValue = valueToCompare.replace(/^["'](.*)["']$/, "$1");
             return actualValue === expectedValue;
         }
-        return !!values[trimmedCondition];
+        // Check if the value exists and is not empty
+        const value = values[trimmedCondition];
+        return !!(value && value.trim());
     }
     /**
      * Outputs debug information about the current options.
@@ -48100,6 +48346,7 @@ class OpenAIClient {
     }
     async create(ctx, prompts) {
         try {
+            const temperature = this.model == "o4-mini" ? 1 : 0.1;
             // Call the OpenAI API
             const response = await this.client.chat.completions.create({
                 model: this.model,
@@ -48110,7 +48357,7 @@ class OpenAIClient {
                         content: prompt.text
                     }))
                 ],
-                temperature: 0.1
+                temperature
                 // max_tokens: 2000,
             }, {
                 timeout: this.options.timeoutMS,
@@ -48426,7 +48673,7 @@ const parseReviewComment = (filename, reviewComment) => {
  * @returns Configured Options instance with all action parameters
  */
 const getOptions = () => {
-    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"), coreExports.getInput("base_url") || undefined);
+    return new Options(coreExports.getBooleanInput("debug"), coreExports.getBooleanInput("disable_review"), coreExports.getBooleanInput("disable_release_notes"), coreExports.getMultilineInput("path_filters"), coreExports.getInput("system_prompt"), coreExports.getMultilineInput("summary_model"), coreExports.getMultilineInput("model"), coreExports.getInput("retries"), coreExports.getInput("timeout_ms"), coreExports.getInput("language"), coreExports.getInput("summarize_release_notes"), coreExports.getInput("release_notes_title"), coreExports.getBooleanInput("use_file_content"), coreExports.getInput("custom_review_policy"), coreExports.getInput("comment_greeting"), coreExports.getMultilineInput("ignore_keywords"), coreExports.getInput("base_url") || undefined, coreExports.getInput("file_type_prompts"));
 };
 const token = process.env.GITHUB_TOKEN || "";
 /**

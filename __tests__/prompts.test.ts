@@ -1,21 +1,29 @@
-import type { Options } from "../src/option"
-import { Prompts, renderFileDiffHunk } from "../src/prompts"
 // 型のみではなく実際のクラスとしてインポート
 import { PullRequestContext } from "../src/context"
+import type { Options } from "../src/option"
+import { Prompts, renderFileDiffHunk } from "../src/prompts"
 import type { ChangeFile, FileDiff } from "../src/types"
+
+// Mock Options interface for testing
+interface MockOptions {
+  language: string
+  useFileContent: boolean
+  reviewPolicy?: string
+  getFileTypePrompt: (filename: string) => string
+}
 
 describe("Prompts", () => {
   let prompts: Prompts
-  let mockOptions: Options
+  let mockOptions: MockOptions
 
   beforeEach(() => {
     mockOptions = {
       language: "ja-JP",
       useFileContent: true,
-      reviewPolicy: "Be thorough and detailed"
-      // Add other required options here if needed
-    } as Options
-    prompts = new Prompts(mockOptions)
+      reviewPolicy: "Be thorough and detailed",
+      getFileTypePrompt: () => ""
+    }
+    prompts = new Prompts(mockOptions as Options)
   })
 
   describe("renderTemplate", () => {
@@ -225,11 +233,12 @@ Anonymous User
 
     test("Should not include file content when useFileContent is false", () => {
       // Create new Prompts instance with useFileContent: false
-      const options: Options = {
+      const options: MockOptions = {
         language: "ja-JP",
-        useFileContent: false
-      } as Options
-      const promptsNoContent = new Prompts(options)
+        useFileContent: false,
+        getFileTypePrompt: () => ""
+      }
+      const promptsNoContent = new Prompts(options as Options)
 
       // Mock data
       const mockContext = new PullRequestContext(
@@ -390,6 +399,228 @@ Anonymous User
       expect(result).toContain("---old_hunk---")
       expect(result).toContain(
         "```\nfunction oldVersion() {\n  return false;\n}\n```"
+      )
+    })
+  })
+
+  describe("File Type Specific Prompts Integration", () => {
+    test("Should include file type specific prompts in review prompt", () => {
+      const options = {
+        language: "en-US",
+        useFileContent: true,
+        reviewPolicy: "Be thorough and detailed",
+        getFileTypePrompt: (filename: string) => {
+          if (filename.endsWith(".ts")) {
+            return "Focus on type safety and TypeScript best practices.\nCheck for proper interface definitions and generic usage.\nVerify strict mode compliance and null safety."
+          }
+          if (filename.endsWith(".js")) {
+            return "Focus on ES6+ best practices and modern JavaScript patterns.\nCheck for proper async/await usage and error handling."
+          }
+          return ""
+        },
+        debug: false,
+        disableReview: false,
+        disableReleaseNotes: false,
+        systemPrompt: "",
+        summaryModel: [],
+        model: [],
+        retries: 0,
+        timeoutMS: 0,
+        summarizeReleaseNotes: "",
+        releaseNotesTitle: "",
+        localAction: false,
+        commentGreeting: "",
+        ignoreKeywords: [],
+        baseURL: undefined,
+
+        print: (): void => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        checkPath: (_path: string): boolean => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        includeIgnoreKeywords: (_description: string): boolean => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        getFileType: (_filename: string): string => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        parseFileTypePrompts: (_input: string): Map<string, string> => {
+          throw new Error("Function not implemented.")
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+
+      const promptsWithFileType = new Prompts(options)
+
+      const ctx = new PullRequestContext(
+        "testowner",
+        "Test PR Title",
+        "testrepo",
+        "Test PR Description",
+        123,
+        "base-sha",
+        "head-sha"
+      )
+
+      const tsChange: ChangeFile = {
+        filename: "src/component.ts",
+        sha: "abc123",
+        status: "modified",
+        additions: 10,
+        deletions: 5,
+        changes: 15,
+        url: "https://github.com/test/test/blob/abc123/src/component.ts",
+        patch:
+          "@@ -1,3 +1,4 @@\n interface User {}\n+interface Admin extends User {}",
+        summary: "Added Admin interface",
+        content: "interface User {}\ninterface Admin extends User {}",
+        diff: []
+      }
+
+      const tsDiff: FileDiff = {
+        filename: "src/component.ts",
+        index: 1,
+        from: {
+          filename: "src/component.ts",
+          startLine: 1,
+          lineCount: 1,
+          content: ["interface User {}"]
+        },
+        to: {
+          filename: "src/component.ts",
+          startLine: 1,
+          lineCount: 2,
+          content: ["interface User {}", "interface Admin extends User {}"]
+        }
+      }
+
+      const tsResult = promptsWithFileType.renderReviewPrompt(
+        ctx,
+        tsChange,
+        tsDiff
+      )
+
+      expect(tsResult[0].text).toContain("File Type Specific Guidelines")
+      expect(tsResult[0].text).toContain(
+        "Focus on type safety and TypeScript best practices"
+      )
+      expect(tsResult[0].text).toContain(
+        "Check for proper interface definitions"
+      )
+      expect(tsResult[0].text).toContain("Verify strict mode compliance")
+    })
+
+    test("Should not include file type guidelines section when no prompt is available", () => {
+      const options = {
+        language: "en-US",
+        useFileContent: false,
+        reviewPolicy: "",
+        getFileTypePrompt: () => "" // No file type prompts
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+
+      const promptsNoFileType = new Prompts(options)
+
+      const ctx = new PullRequestContext(
+        "testowner",
+        "Test PR Title",
+        "testrepo",
+        "Test PR Description",
+        123,
+        "base-sha",
+        "head-sha"
+      )
+
+      const change: ChangeFile = {
+        filename: "src/unknown.xyz",
+        sha: "abc123",
+        status: "modified",
+        additions: 1,
+        deletions: 0,
+        changes: 1,
+        url: "https://github.com/test/test/blob/abc123/src/unknown.xyz",
+        patch: "@@ -1,1 +1,2 @@\n line1\n+line2",
+        summary: "Added line",
+        content: "line1\nline2",
+        diff: []
+      }
+
+      const diff: FileDiff = {
+        filename: "src/unknown.xyz",
+        index: 1,
+        from: {
+          filename: "src/unknown.xyz",
+          startLine: 1,
+          lineCount: 1,
+          content: ["line1"]
+        },
+        to: {
+          filename: "src/unknown.xyz",
+          startLine: 1,
+          lineCount: 2,
+          content: ["line1", "line2"]
+        }
+      }
+
+      const result = promptsNoFileType.renderReviewPrompt(ctx, change, diff)
+
+      expect(result[0].text).not.toContain("File Type Specific Guidelines")
+    })
+
+    test("Should include file type prompts in summary generation", () => {
+      const options = {
+        language: "en-US",
+        useFileContent: true,
+        getFileTypePrompt: (filename: string) => {
+          if (filename.endsWith(".py")) {
+            return "Focus on PEP8 compliance and Python best practices.\nCheck for proper type hints and exception handling."
+          }
+          return ""
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+
+      const promptsWithFileType = new Prompts(options)
+
+      const ctx = new PullRequestContext(
+        "testowner",
+        "Python Enhancement",
+        "testrepo",
+        "Improved Python code quality",
+        456,
+        "base-sha",
+        "head-sha"
+      )
+
+      const pyChange: ChangeFile = {
+        filename: "src/utils.py",
+        sha: "def789",
+        status: "modified",
+        additions: 8,
+        deletions: 3,
+        changes: 11,
+        url: "https://github.com/test/test/blob/def789/src/utils.py",
+        patch:
+          "@@ -1,3 +1,4 @@\n def process_data(data):\n+    if not data:\n+        raise ValueError('Data cannot be empty')",
+        summary: "",
+        content:
+          "def process_data(data):\n    if not data:\n        raise ValueError('Data cannot be empty')",
+        diff: []
+      }
+
+      const result = promptsWithFileType.renderSummarizeFileDiff(ctx, pyChange)
+
+      expect(result[0].text).toContain("File Type Specific Guidelines")
+      expect(result[0].text).toContain(
+        "Focus on PEP8 compliance and Python best practices"
+      )
+      expect(result[0].text).toContain(
+        "Check for proper type hints and exception handling"
       )
     })
   })

@@ -40,7 +40,8 @@ const getOptions = () => {
     getInput("custom_review_policy"),
     getInput("comment_greeting"),
     getMultilineInput("ignore_keywords"),
-    getInput("base_url") || undefined
+    getInput("base_url") || undefined,
+    getInput("file_type_prompts")
   )
 }
 

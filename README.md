@@ -12,6 +12,7 @@ structured release notes to help streamline the code review process.
 - Support for multiple AI models (Claude, GPT, Gemini)
 - File change analysis and patch parsing
 - Configurable path filters for targeted reviews
+- **File type specific prompts** for enhanced review quality
 - Language-specific review support
 - File content aware review capability
 
@@ -91,6 +92,66 @@ For detailed configuration settings, please refer to [action.yml](action.yml).
 | `comment_greeting`        | Greeting message for comments                                              | `Review bot comments:`                                                      |
 | `ignore_keywords`         | Keywords to skip review (one per line)                                     | `@review-bot: ignore`, `@review-bot: no-review`, `@review-bot: skip-review` |
 | `base_url`                | Specify the URL when using OpenAI-compatible API(OpenRouter)               | `""`                                                                        |
+| `file_type_prompts`       | File type specific prompts in YAML format for enhanced review quality      | `""` (see [File Type Specific Prompts](#file-type-specific-prompts))        |
+
+## File Type Specific Prompts
+
+The `file_type_prompts` feature allows you to provide specialized review
+guidelines for different programming languages and file types. This enhances the
+AI's ability to provide relevant, language-specific feedback.
+
+### Usage Example
+
+```yaml
+- name: AI Code Review
+  uses: mopemope/pr-ai-review-bot@v1
+  with:
+    file_type_prompts: |
+      javascript: |
+        Focus on ES6+ best practices and modern JavaScript patterns.
+        Check for proper async/await usage and error handling.
+        Verify performance optimizations and security considerations.
+        Look for potential memory leaks and proper event listener cleanup.
+
+      python: |
+        Focus on PEP8 compliance and Python best practices.
+        Check for proper type hints and exception handling.
+        Verify security vulnerabilities and performance issues.
+        Look for proper use of context managers and generators.
+
+      typescript: |
+        Focus on type safety and TypeScript best practices.
+        Check for proper interface definitions and generic usage.
+        Verify strict mode compliance and null safety.
+        Look for proper use of utility types and mapped types.
+
+      go: |
+        Focus on Go idioms and best practices.
+        Check for proper error handling and goroutine usage.
+        Verify memory efficiency and concurrency patterns.
+        Look for proper use of channels and context.
+
+      sql: |
+        Focus on query optimization and security.
+        Check for SQL injection vulnerabilities.
+        Verify proper indexing and performance considerations.
+        Look for proper use of transactions and constraints.
+```
+
+### Supported File Types
+
+The system automatically detects file types based on extensions and filenames.
+Supported types include:
+
+- **Programming Languages**: `javascript`, `typescript`, `python`, `java`, `go`,
+  `rust`, `cpp`, `c`, `php`, `ruby`, `swift`, `kotlin`, `scala`, `csharp`,
+  `fsharp`
+- **Web Technologies**: `html`, `css`, `scss`, `sass`, `less`
+- **Data Formats**: `json`, `xml`, `yaml`, `toml`, `ini`
+- **Database**: `sql`
+- **Documentation**: `markdown`, `rst`, `latex`
+- **Configuration**: `docker`, `shell`, `powershell`, `gitignore`, `env`
+- **And many more...**
 
 default system_prompt:
 
