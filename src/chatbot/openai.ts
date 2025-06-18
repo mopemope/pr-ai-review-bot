@@ -35,6 +35,7 @@ export class OpenAIClient implements ChatBot {
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {
     try {
+      const temperature = this.model == "o4-mini" ? 1 : 0.1
       // Call the OpenAI API
       const response = await this.client.chat.completions.create(
         {
@@ -46,7 +47,7 @@ export class OpenAIClient implements ChatBot {
               content: prompt.text
             }))
           ],
-          temperature: 0.1
+          temperature
           // max_tokens: 2000,
         },
         {

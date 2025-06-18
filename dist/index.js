@@ -48346,6 +48346,7 @@ class OpenAIClient {
     }
     async create(ctx, prompts) {
         try {
+            const temperature = this.model == "o4-mini" ? 1 : 0.1;
             // Call the OpenAI API
             const response = await this.client.chat.completions.create({
                 model: this.model,
@@ -48356,7 +48357,7 @@ class OpenAIClient {
                         content: prompt.text
                     }))
                 ],
-                temperature: 0.1
+                temperature
                 // max_tokens: 2000,
             }, {
                 timeout: this.options.timeoutMS,
