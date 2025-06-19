@@ -1,5 +1,7 @@
 import { debug } from "@actions/core"
+import { ApiDetector } from "./apiDetector.js"
 import type {
+  ApiEndpoint,
   ChangeFile,
   DetectedPattern,
   PatternDetectionResult,
@@ -154,6 +156,11 @@ const PERFORMANCE_PATTERNS: Record<PerformancePatternType, PerformancePattern> =
  * Pattern detector class for analyzing code changes
  */
 export class PatternDetector {
+  private apiDetector: ApiDetector
+
+  constructor() {
+    this.apiDetector = new ApiDetector()
+  }
   /**
    * Detects security and performance patterns in a changed file
    * @param change - The changed file to analyze
@@ -190,11 +197,18 @@ export class PatternDetector {
       patterns.push(...detectedPatterns)
     }
 
+    // Detect API endpoints
+    const apiResult = this.apiDetector.detectApiEndpoints(change)
+    change.apiEndpoints = apiResult.endpoints
+
     // Calculate overall risk level
     const riskLevel = this.calculateRiskLevel(patterns)
 
     // Generate recommended focus areas
-    const recommendedFocus = this.generateRecommendedFocus(patterns)
+    const recommendedFocus = this.generateRecommendedFocus(
+      patterns,
+      apiResult.endpoints
+    )
 
     debug(
       `Pattern detection for ${change.filename}: ${patterns.length} patterns found, risk level: ${riskLevel}`
@@ -266,7 +280,10 @@ export class PatternDetector {
   /**
    * Generates recommended focus areas based on detected patterns
    */
-  private generateRecommendedFocus(patterns: DetectedPattern[]): string[] {
+  private generateRecommendedFocus(
+    patterns: DetectedPattern[],
+    apiEndpoints?: ApiEndpoint[]
+  ): string[] {
     const focus: Set<string> = new Set()
 
     for (const pattern of patterns) {
@@ -293,6 +310,39 @@ export class PatternDetector {
         }
         if (pattern.subType === "blocking_operation") {
           focus.add("Asynchronous programming and non-blocking operations")
+        }
+      }
+    }
+
+    // Add API-specific focus areas
+    if (apiEndpoints && apiEndpoints.length > 0) {
+      focus.add("API endpoint security and best practices")
+
+      const hasUnauthenticatedEndpoints = apiEndpoints.some(
+        (ep) => !ep.hasAuthentication
+      )
+      const hasUnvalidatedEndpoints = apiEndpoints.some(
+        (ep) => !ep.hasValidation
+      )
+      const hasNoRateLimit = apiEndpoints.some((ep) => !ep.hasRateLimit)
+
+      if (hasUnauthenticatedEndpoints) {
+        focus.add("API authentication and authorization")
+      }
+      if (hasUnvalidatedEndpoints) {
+        focus.add("Input validation and sanitization")
+      }
+      if (hasNoRateLimit) {
+        focus.add("Rate limiting and DDoS protection")
+      }
+
+      // Add concerns from API analysis
+      for (const endpoint of apiEndpoints) {
+        if (endpoint.securityConcerns.length > 0) {
+          focus.add("API security vulnerabilities")
+        }
+        if (endpoint.performanceConcerns.length > 0) {
+          focus.add("API performance optimization")
         }
       }
     }

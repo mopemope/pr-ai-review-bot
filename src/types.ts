@@ -13,6 +13,7 @@ export type ChangeFile = {
   summary: string
   content: string | undefined
   detectedPatterns?: DetectedPattern[]
+  apiEndpoints?: ApiEndpoint[]
 }
 
 export type FileDiff = {
@@ -58,4 +59,33 @@ export type PatternDetectionResult = {
   patterns: DetectedPattern[]
   riskLevel: "low" | "medium" | "high" | "critical"
   recommendedFocus: string[]
+}
+
+export type HttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "PATCH"
+  | "HEAD"
+  | "OPTIONS"
+
+export type ApiEndpoint = {
+  method: HttpMethod
+  path: string
+  line: number
+  framework: string
+  hasAuthentication: boolean
+  hasValidation: boolean
+  hasRateLimit: boolean
+  securityConcerns: string[]
+  performanceConcerns: string[]
+}
+
+export type ApiDetectionResult = {
+  filename: string
+  endpoints: ApiEndpoint[]
+  framework: string | null
+  hasSecurityMiddleware: boolean
+  hasValidationMiddleware: boolean
 }

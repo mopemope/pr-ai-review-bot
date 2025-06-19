@@ -1,4 +1,5 @@
 import { debug } from "@actions/core"
+import { ApiPrompts } from "./apiPrompts.js"
 import type { Message } from "./chatbot/index.js"
 import type { PullRequestContext } from "./context.js"
 import type { Options } from "./option.js"
@@ -70,6 +71,13 @@ $if(detectedPatterns) {
 $detectedPatterns
 
 **IMPORTANT**: Pay special attention to the patterns detected above. These represent potential security vulnerabilities and performance issues that require careful review.
+}
+$if(apiEndpoints) {
+## API Endpoint Analysis
+
+$apiEndpoints
+
+**IMPORTANT**: This file contains API endpoints. Please apply the API-specific review guidelines above and pay special attention to security, performance, and design aspects of the API implementation.
 }
 $if(reviewPolicy) {
 ## Review Policy
@@ -318,6 +326,12 @@ export class Prompts {
       )
     }
 
+    // Format API endpoints for inclusion in the prompt
+    let apiEndpointsText = ""
+    if (change.apiEndpoints && change.apiEndpoints.length > 0) {
+      apiEndpointsText = ApiPrompts.generateApiReviewPrompt(change.apiEndpoints)
+    }
+
     const data = {
       title: ctx.title,
       description: ctx.description || "",
@@ -327,7 +341,8 @@ export class Prompts {
       patches: renderFileDiffHunk(diff),
       reviewPolicy: this.options.reviewPolicy || "",
       fileTypePrompt: this.options.getFileTypePrompt(change.filename),
-      detectedPatterns: detectedPatternsText
+      detectedPatterns: detectedPatternsText,
+      apiEndpoints: apiEndpointsText
     }
 
     // cache the first prompt
