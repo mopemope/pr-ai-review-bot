@@ -2,6 +2,7 @@ import { debug } from "@actions/core"
 import type { Message } from "./chatbot/index.js"
 import type { PullRequestContext } from "./context.js"
 import type { Options } from "./option.js"
+import { PatternDetector } from "./patternDetector.js"
 import type { ChangeFile, FileDiff } from "./types.js"
 
 const defaultFooter = `
@@ -63,6 +64,13 @@ $content
 $changeSummary
 \`\`\`
 
+$if(detectedPatterns) {
+## Detected Security and Performance Patterns
+
+$detectedPatterns
+
+**IMPORTANT**: Pay special attention to the patterns detected above. These represent potential security vulnerabilities and performance issues that require careful review.
+}
 $if(reviewPolicy) {
 ## Review Policy
 \`\`\`
@@ -215,6 +223,7 @@ export class Prompts {
   private summarizePrefix: string = defalutSummarizePrefix
   private summarizeReleaseNote: string
   private footer: string = defaultFooter
+  private patternDetector: PatternDetector
 
   /**
    * Creates a new Prompts instance with the specified options and template settings.
@@ -225,6 +234,7 @@ export class Prompts {
   constructor(options: Options) {
     this.options = options
     this.summarizeReleaseNote = summarizeReleaseNote
+    this.patternDetector = new PatternDetector()
   }
 
   /**
@@ -299,6 +309,15 @@ export class Prompts {
     diff: FileDiff
   ): Message[] {
     const prompts: Message[] = []
+
+    // Format detected patterns for inclusion in the prompt
+    let detectedPatternsText = ""
+    if (change.detectedPatterns && change.detectedPatterns.length > 0) {
+      detectedPatternsText = this.patternDetector.formatPatternsForReview(
+        change.detectedPatterns
+      )
+    }
+
     const data = {
       title: ctx.title,
       description: ctx.description || "",
@@ -307,7 +326,8 @@ export class Prompts {
       content: this.options.useFileContent ? change.content || "" : "",
       patches: renderFileDiffHunk(diff),
       reviewPolicy: this.options.reviewPolicy || "",
-      fileTypePrompt: this.options.getFileTypePrompt(change.filename)
+      fileTypePrompt: this.options.getFileTypePrompt(change.filename),
+      detectedPatterns: detectedPatternsText
     }
 
     // cache the first prompt

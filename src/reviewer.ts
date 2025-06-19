@@ -7,6 +7,7 @@ import {
 import type { Commenter } from "./commenter.js"
 import type { PullRequestContext } from "./context.js"
 import type { Options } from "./option.js"
+import { PatternDetector } from "./patternDetector.js"
 import type { Prompts } from "./prompts.js"
 import type { ChangeFile, FileDiff } from "./types.js"
 
@@ -54,6 +55,12 @@ export class Reviewer {
   private reviewBot: ChatBot[]
 
   /**
+   * Pattern detector for analyzing security and performance issues.
+   * @private
+   */
+  private patternDetector: PatternDetector
+
+  /**
    * Creates a new Reviewer instance.
    * @param octokit - GitHub API client instance
    * @param commenter - Commenter instance for posting comments
@@ -62,6 +69,7 @@ export class Reviewer {
   constructor(commenter: Commenter, options: Options) {
     this.commenter = commenter
     this.options = options
+    this.patternDetector = new PatternDetector()
 
     this.summaryBot = this.options.summaryModel.map((summaryModel) =>
       createChatBotFromModel(summaryModel, this.options)
@@ -177,6 +185,14 @@ export class Reviewer {
   }): Promise<string> {
     // Process each file change and generate individual summaries
     for (const change of changes) {
+      // Detect patterns in the changed file
+      const patternResult = this.patternDetector.detectPatterns(change)
+      change.detectedPatterns = patternResult.patterns
+
+      debug(
+        `Pattern detection for ${change.filename}: ${patternResult.patterns.length} patterns, risk: ${patternResult.riskLevel}`
+      )
+
       // Create a prompt specific to this file's changes
       const prompt = prompts.renderSummarizeFileDiff(prContext, change)
       // Generate summary for this specific file change using the chatbot
@@ -216,6 +232,16 @@ export class Reviewer {
     const filename = change.filename
 
     info(`Start review: ${diff.filename}#${diff.index}`)
+
+    // Detect patterns if not already done
+    if (!change.detectedPatterns) {
+      const patternResult = this.patternDetector.detectPatterns(change)
+      change.detectedPatterns = patternResult.patterns
+
+      debug(
+        `Pattern detection for ${change.filename}: ${patternResult.patterns.length} patterns, risk: ${patternResult.riskLevel}`
+      )
+    }
 
     // Create a prompt specific to this file's diff
     const reviewPrompt = prompts.renderReviewPrompt(prContext, change, diff)

@@ -2,7 +2,8 @@ import { debug, warning } from "@actions/core"
 import OpenAI from "openai"
 import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
-import { type ChatBot, type Message, getModelName } from "./index.js"
+import type { ChatBot, Message } from "./types.js"
+import { getModelName } from "./types.js"
 
 const apiKey = process.env.OPENAI_API_KEY || ""
 
