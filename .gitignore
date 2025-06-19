@@ -109,3 +109,4 @@ memory-bank
 *.swp
 *.swo
 .agent.md
+.amazonq*
