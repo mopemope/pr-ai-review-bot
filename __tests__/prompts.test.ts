@@ -572,6 +572,192 @@ Anonymous User
       expect(result[0].text).not.toContain("File Type Specific Guidelines")
     })
 
+    test("Should not include file type guidelines section when file_type_prompts is not specified", () => {
+      // Create options with getFileTypePrompt that always returns empty string to simulate no file_type_prompts configuration
+      const optionsWithoutFileTypePrompts = {
+        language: "en-US",
+        useFileContent: true,
+        reviewPolicy: "Standard review policy",
+        getFileTypePrompt: () => "", // Always return empty string to simulate missing file_type_prompts configuration
+        debug: false,
+        disableReview: false,
+        disableReleaseNotes: false,
+        systemPrompt: "",
+        summaryModel: [],
+        model: [],
+        retries: 0,
+        timeoutMS: 0,
+        summarizeReleaseNotes: "",
+        releaseNotesTitle: "",
+        localAction: false,
+        commentGreeting: "",
+        ignoreKeywords: [],
+        baseURL: undefined,
+
+        print: (): void => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        checkPath: (_path: string): boolean => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        includeIgnoreKeywords: (_description: string): boolean => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        getFileType: (_filename: string): string => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        parseFileTypePrompts: (_input: string): Map<string, string> => {
+          throw new Error("Function not implemented.")
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+
+      const promptsWithoutFileType = new Prompts(optionsWithoutFileTypePrompts)
+
+      const ctx = new PullRequestContext(
+        "testowner",
+        "Test PR without file type prompts",
+        "testrepo",
+        "This PR should not include file type specific guidelines",
+        789,
+        "base-sha",
+        "head-sha"
+      )
+
+      const change: ChangeFile = {
+        filename: "src/example.ts",
+        sha: "xyz789",
+        status: "modified",
+        additions: 5,
+        deletions: 2,
+        changes: 7,
+        url: "https://github.com/test/test/blob/xyz789/src/example.ts",
+        patch:
+          "@@ -1,3 +1,4 @@\n function test() {\n+  console.log('test');\n }",
+        summary: "Added console log",
+        content: "function test() {\n  console.log('test');\n}",
+        diff: []
+      }
+
+      const diff: FileDiff = {
+        filename: "src/example.ts",
+        index: 1,
+        from: {
+          filename: "src/example.ts",
+          startLine: 1,
+          lineCount: 2,
+          content: ["function test() {", "}"]
+        },
+        to: {
+          filename: "src/example.ts",
+          startLine: 1,
+          lineCount: 3,
+          content: ["function test() {", "  console.log('test');", "}"]
+        }
+      }
+
+      const result = promptsWithoutFileType.renderReviewPrompt(
+        ctx,
+        change,
+        diff
+      )
+
+      // Should not contain file type specific guidelines section
+      expect(result[0].text).not.toContain("File Type Specific Guidelines")
+
+      // Should still contain other standard sections
+      expect(result[0].text).toContain("## GitHub PR Title")
+      expect(result[0].text).toContain("Test PR without file type prompts")
+      expect(result[0].text).toContain("## Review Policy")
+      expect(result[0].text).toContain("Standard review policy")
+    })
+
+    test("Should not include file type guidelines in summary when file_type_prompts is not specified", () => {
+      // Create options with getFileTypePrompt that always returns empty string
+      const optionsWithoutFileTypePrompts = {
+        language: "en-US",
+        useFileContent: true,
+        getFileTypePrompt: () => "", // Always return empty string to simulate missing file_type_prompts configuration
+        debug: false,
+        disableReview: false,
+        disableReleaseNotes: false,
+        systemPrompt: "",
+        summaryModel: [],
+        model: [],
+        retries: 0,
+        timeoutMS: 0,
+        summarizeReleaseNotes: "",
+        releaseNotesTitle: "",
+        localAction: false,
+        commentGreeting: "",
+        ignoreKeywords: [],
+        baseURL: undefined,
+
+        print: (): void => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        checkPath: (_path: string): boolean => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        includeIgnoreKeywords: (_description: string): boolean => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        getFileType: (_filename: string): string => {
+          throw new Error("Function not implemented.")
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        parseFileTypePrompts: (_input: string): Map<string, string> => {
+          throw new Error("Function not implemented.")
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+
+      const promptsWithoutFileType = new Prompts(optionsWithoutFileTypePrompts)
+
+      const ctx = new PullRequestContext(
+        "testowner",
+        "Summary test without file type prompts",
+        "testrepo",
+        "Testing summary generation without file type prompts",
+        456,
+        "base-sha",
+        "head-sha"
+      )
+
+      const change: ChangeFile = {
+        filename: "src/utils.py",
+        sha: "def789",
+        status: "modified",
+        additions: 8,
+        deletions: 3,
+        changes: 11,
+        url: "https://github.com/test/test/blob/def789/src/utils.py",
+        patch:
+          "@@ -1,3 +1,4 @@\n def process_data(data):\n+    if not data:\n+        raise ValueError('Data cannot be empty')",
+        summary: "",
+        content:
+          "def process_data(data):\n    if not data:\n        raise ValueError('Data cannot be empty')",
+        diff: []
+      }
+
+      const result = promptsWithoutFileType.renderSummarizeFileDiff(ctx, change)
+
+      // Should not contain file type specific guidelines section
+      expect(result[0].text).not.toContain("File Type Specific Guidelines")
+
+      // Should still contain other standard sections
+      expect(result[0].text).toContain("## GitHub PR Title")
+      expect(result[0].text).toContain("Summary test without file type prompts")
+      expect(result[0].text).toContain("## File Content Data")
+    })
+
     test("Should include file type prompts in summary generation", () => {
       const options = {
         language: "en-US",
