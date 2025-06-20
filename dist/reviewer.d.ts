@@ -37,6 +37,11 @@ export declare class Reviewer {
      */
     private reviewBot;
     /**
+     * Pattern detector for analyzing security and performance issues.
+     * @private
+     */
+    private patternDetector;
+    /**
      * Creates a new Reviewer instance.
      * @param octokit - GitHub API client instance
      * @param commenter - Commenter instance for posting comments

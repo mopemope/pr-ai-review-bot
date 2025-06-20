@@ -1,46 +1,14 @@
 // This module defines the ChatBot interface and factory function to create chatbot instances
 
-import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
 import { ClaudeClient } from "./claude.js"
 import { GeminiClient } from "./gemini.js"
 import { OpenAIClient } from "./openai.js"
+import type { ChatBot } from "./types.js"
 
-/**
- * Type providing a message structure for the chatbot.
- */
-export type Message = {
-  text: string
-  role: string
-  // if true, prompt will be cached. default is false
-  cache?: boolean
-}
-
-/**
- * Interface for chatbot clients that can review code
- */
-export interface ChatBot {
-  /**
-   * returns the full model name
-   */
-  getFullModelName(): string
-
-  /**
-   * generate message for the given context
-   * @returns llm response
-   */
-  create(ctx: PullRequestContext, prompts: Message[]): Promise<string>
-}
-
-/**
- * Extract the model name from a full model identifier string
- * @param name - Full model identifier in "provider/model" format
- * @returns The model portion of the identifier, or the original string if no provider prefix is found.
- */
-export const getModelName = (name: string): string => {
-  const parts = name.split("/")
-  return parts.length > 1 ? parts.slice(1).join("/") : name
-}
+// Re-export types and functions from types.ts
+export type { ChatBot, Message } from "./types.js"
+export { getModelName } from "./types.js"
 
 /**
  * Factory function to create appropriate ChatBot implementation based on model name

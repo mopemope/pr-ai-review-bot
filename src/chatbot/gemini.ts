@@ -3,7 +3,8 @@ import { type GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai"
 import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
 import { sleep } from "../utils.js"
-import { type ChatBot, type Message, getModelName } from "./index.js"
+import type { ChatBot, Message } from "./types.js"
+import { getModelName } from "./types.js"
 
 const apiKey = process.env.GEMINI_API_KEY || ""
 

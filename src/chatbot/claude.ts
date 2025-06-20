@@ -3,7 +3,8 @@ import Anthropic from "@anthropic-ai/sdk"
 import type { TextBlockParam } from "@anthropic-ai/sdk/resources/index.mjs"
 import type { PullRequestContext } from "../context.js"
 import type { Options } from "../option.js"
-import { type ChatBot, type Message, getModelName } from "./index.js"
+import type { ChatBot, Message } from "./types.js"
+import { getModelName } from "./types.js"
 
 const apiKey = process.env.ANTHROPIC_API_KEY || ""
 

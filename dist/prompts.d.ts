@@ -11,6 +11,7 @@ export declare class Prompts {
     private summarizePrefix;
     private summarizeReleaseNote;
     private footer;
+    private patternDetector;
     /**
      * Creates a new Prompts instance with the specified options and template settings.
      * @param options - Configuration options for the PR reviewer
