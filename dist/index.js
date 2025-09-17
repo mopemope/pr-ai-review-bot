@@ -48713,9 +48713,8 @@ class OpenAIClient {
     }
     async create(ctx, prompts) {
         try {
-            const temperature = this.model == "o4-mini" ? 1 : 0.1;
-            // Call the OpenAI API
-            const response = await this.client.chat.completions.create({
+            const temperature = this.model == "o4-mini" ? 1 : undefined;
+            const body = {
                 model: this.model,
                 messages: [
                     { role: "system", content: this.options.systemPrompt },
@@ -48723,10 +48722,14 @@ class OpenAIClient {
                         role: prompt.role,
                         content: prompt.text
                     }))
-                ],
-                temperature
+                ]
                 // max_tokens: 2000,
-            }, {
+            };
+            if (temperature) {
+                body.temperature = temperature;
+            }
+            // Call the OpenAI API
+            const response = await this.client.chat.completions.create(body, {
                 timeout: this.options.timeoutMS,
                 maxRetries: this.options.retries
             });
