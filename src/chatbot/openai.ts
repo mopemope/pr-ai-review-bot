@@ -35,26 +35,28 @@ export class OpenAIClient implements ChatBot {
 
   async create(ctx: PullRequestContext, prompts: Message[]): Promise<string> {
     try {
-      const temperature = this.model == "o4-mini" ? 1 : 0.1
+      const temperature = this.model == "o4-mini" ? 1 : undefined
+
+      const body: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+        model: this.model,
+        messages: [
+          { role: "system", content: this.options.systemPrompt } as const,
+          ...prompts.map((prompt) => ({
+            role: prompt.role as "user" | "assistant" | "system",
+            content: prompt.text
+          }))
+        ]
+        // max_tokens: 2000,
+      }
+
+      if (temperature) {
+        body.temperature = temperature
+      }
       // Call the OpenAI API
-      const response = await this.client.chat.completions.create(
-        {
-          model: this.model,
-          messages: [
-            { role: "system", content: this.options.systemPrompt } as const,
-            ...prompts.map((prompt) => ({
-              role: prompt.role as "user" | "assistant" | "system",
-              content: prompt.text
-            }))
-          ],
-          temperature
-          // max_tokens: 2000,
-        },
-        {
-          timeout: this.options.timeoutMS,
-          maxRetries: this.options.retries
-        }
-      )
+      const response = await this.client.chat.completions.create(body, {
+        timeout: this.options.timeoutMS,
+        maxRetries: this.options.retries
+      })
 
       return response.choices[0]?.message?.content || ""
     } catch (error) {
