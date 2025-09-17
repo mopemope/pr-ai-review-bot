@@ -36155,6 +36155,8 @@ const startsWithSchemeRegexp$1 = /^[a-z][a-z0-9+.-]*:/i;
 const isAbsoluteURL$1 = (url) => {
     return startsWithSchemeRegexp$1.test(url);
 };
+let isArray = (val) => ((isArray = Array.isArray), isArray(val));
+let isReadonlyArray = isArray;
 /** Returns an object if the given value isn't an object, otherwise returns as-is */
 function maybeObj(x) {
     if (typeof x !== 'object') {
@@ -36195,86 +36197,7 @@ const safeJSON$1 = (text) => {
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const sleep$2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-const levelNumbers = {
-    off: 0,
-    error: 200,
-    warn: 300,
-    info: 400,
-    debug: 500,
-};
-const parseLogLevel = (maybeLevel, sourceName, client) => {
-    if (!maybeLevel) {
-        return undefined;
-    }
-    if (hasOwn$1(levelNumbers, maybeLevel)) {
-        return maybeLevel;
-    }
-    loggerFor(client).warn(`${sourceName} was set to ${JSON.stringify(maybeLevel)}, expected one of ${JSON.stringify(Object.keys(levelNumbers))}`);
-    return undefined;
-};
-function noop() { }
-function makeLogFn(fnLevel, logger, logLevel) {
-    if (!logger || levelNumbers[fnLevel] > levelNumbers[logLevel]) {
-        return noop;
-    }
-    else {
-        // Don't wrap logger functions, we want the stacktrace intact!
-        return logger[fnLevel].bind(logger);
-    }
-}
-const noopLogger = {
-    error: noop,
-    warn: noop,
-    info: noop,
-    debug: noop,
-};
-let cachedLoggers = new WeakMap();
-function loggerFor(client) {
-    const logger = client.logger;
-    const logLevel = client.logLevel ?? 'off';
-    if (!logger) {
-        return noopLogger;
-    }
-    const cachedLogger = cachedLoggers.get(logger);
-    if (cachedLogger && cachedLogger[0] === logLevel) {
-        return cachedLogger[1];
-    }
-    const levelLogger = {
-        error: makeLogFn('error', logger, logLevel),
-        warn: makeLogFn('warn', logger, logLevel),
-        info: makeLogFn('info', logger, logLevel),
-        debug: makeLogFn('debug', logger, logLevel),
-    };
-    cachedLoggers.set(logger, [logLevel, levelLogger]);
-    return levelLogger;
-}
-const formatRequestDetails = (details) => {
-    if (details.options) {
-        details.options = { ...details.options };
-        delete details.options['headers']; // redundant + leaks internals
-    }
-    if (details.headers) {
-        details.headers = Object.fromEntries((details.headers instanceof Headers ? [...details.headers] : Object.entries(details.headers)).map(([name, value]) => [
-            name,
-            (name.toLowerCase() === 'x-api-key' ||
-                name.toLowerCase() === 'authorization' ||
-                name.toLowerCase() === 'cookie' ||
-                name.toLowerCase() === 'set-cookie') ?
-                '***'
-                : value,
-        ]));
-    }
-    if ('retryOfRequestLogID' in details) {
-        if (details.retryOfRequestLogID) {
-            details.retryOf = details.retryOfRequestLogID;
-        }
-        delete details.retryOfRequestLogID;
-    }
-    return details;
-};
-
-const VERSION$1 = '0.53.0'; // x-release-please-version
+const VERSION$1 = '0.62.0'; // x-release-please-version
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const isRunningInBrowser$1 = () => {
@@ -36659,13 +36582,96 @@ function findDoubleNewlineIndex$1(buffer) {
     return -1;
 }
 
-let Stream$1 = class Stream {
-    constructor(iterator, controller) {
-        this.iterator = iterator;
-        this.controller = controller;
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+const levelNumbers = {
+    off: 0,
+    error: 200,
+    warn: 300,
+    info: 400,
+    debug: 500,
+};
+const parseLogLevel = (maybeLevel, sourceName, client) => {
+    if (!maybeLevel) {
+        return undefined;
     }
-    static fromSSEResponse(response, controller) {
+    if (hasOwn$1(levelNumbers, maybeLevel)) {
+        return maybeLevel;
+    }
+    loggerFor(client).warn(`${sourceName} was set to ${JSON.stringify(maybeLevel)}, expected one of ${JSON.stringify(Object.keys(levelNumbers))}`);
+    return undefined;
+};
+function noop() { }
+function makeLogFn(fnLevel, logger, logLevel) {
+    if (!logger || levelNumbers[fnLevel] > levelNumbers[logLevel]) {
+        return noop;
+    }
+    else {
+        // Don't wrap logger functions, we want the stacktrace intact!
+        return logger[fnLevel].bind(logger);
+    }
+}
+const noopLogger = {
+    error: noop,
+    warn: noop,
+    info: noop,
+    debug: noop,
+};
+let cachedLoggers = /* @__PURE__ */ new WeakMap();
+function loggerFor(client) {
+    const logger = client.logger;
+    const logLevel = client.logLevel ?? 'off';
+    if (!logger) {
+        return noopLogger;
+    }
+    const cachedLogger = cachedLoggers.get(logger);
+    if (cachedLogger && cachedLogger[0] === logLevel) {
+        return cachedLogger[1];
+    }
+    const levelLogger = {
+        error: makeLogFn('error', logger, logLevel),
+        warn: makeLogFn('warn', logger, logLevel),
+        info: makeLogFn('info', logger, logLevel),
+        debug: makeLogFn('debug', logger, logLevel),
+    };
+    cachedLoggers.set(logger, [logLevel, levelLogger]);
+    return levelLogger;
+}
+const formatRequestDetails = (details) => {
+    if (details.options) {
+        details.options = { ...details.options };
+        delete details.options['headers']; // redundant + leaks internals
+    }
+    if (details.headers) {
+        details.headers = Object.fromEntries((details.headers instanceof Headers ? [...details.headers] : Object.entries(details.headers)).map(([name, value]) => [
+            name,
+            (name.toLowerCase() === 'x-api-key' ||
+                name.toLowerCase() === 'authorization' ||
+                name.toLowerCase() === 'cookie' ||
+                name.toLowerCase() === 'set-cookie') ?
+                '***'
+                : value,
+        ]));
+    }
+    if ('retryOfRequestLogID' in details) {
+        if (details.retryOfRequestLogID) {
+            details.retryOf = details.retryOfRequestLogID;
+        }
+        delete details.retryOfRequestLogID;
+    }
+    return details;
+};
+
+var _Stream_client;
+let Stream$1 = class Stream {
+    constructor(iterator, controller, client) {
+        this.iterator = iterator;
+        _Stream_client.set(this, void 0);
+        this.controller = controller;
+        __classPrivateFieldSet$6(this, _Stream_client, client);
+    }
+    static fromSSEResponse(response, controller, client) {
         let consumed = false;
+        const logger = client ? loggerFor(client) : console;
         async function* iterator() {
             if (consumed) {
                 throw new AnthropicError('Cannot iterate over a consumed stream, use `.tee()` to split the stream.');
@@ -36679,8 +36685,8 @@ let Stream$1 = class Stream {
                             yield JSON.parse(sse.data);
                         }
                         catch (e) {
-                            console.error(`Could not parse message into JSON:`, sse.data);
-                            console.error(`From chunk:`, sse.raw);
+                            logger.error(`Could not parse message into JSON:`, sse.data);
+                            logger.error(`From chunk:`, sse.raw);
                             throw e;
                         }
                     }
@@ -36694,8 +36700,8 @@ let Stream$1 = class Stream {
                             yield JSON.parse(sse.data);
                         }
                         catch (e) {
-                            console.error(`Could not parse message into JSON:`, sse.data);
-                            console.error(`From chunk:`, sse.raw);
+                            logger.error(`Could not parse message into JSON:`, sse.data);
+                            logger.error(`From chunk:`, sse.raw);
                             throw e;
                         }
                     }
@@ -36720,13 +36726,13 @@ let Stream$1 = class Stream {
                     controller.abort();
             }
         }
-        return new Stream(iterator, controller);
+        return new Stream(iterator, controller, client);
     }
     /**
      * Generates a Stream from a newline-separated ReadableStream
      * where each item is a JSON value.
      */
-    static fromReadableStream(readableStream, controller) {
+    static fromReadableStream(readableStream, controller, client) {
         let consumed = false;
         async function* iterLines() {
             const lineDecoder = new LineDecoder$1();
@@ -36767,9 +36773,9 @@ let Stream$1 = class Stream {
                     controller.abort();
             }
         }
-        return new Stream(iterator, controller);
+        return new Stream(iterator, controller, client);
     }
-    [Symbol.asyncIterator]() {
+    [(_Stream_client = new WeakMap(), Symbol.asyncIterator)]() {
         return this.iterator();
     }
     /**
@@ -36793,8 +36799,8 @@ let Stream$1 = class Stream {
             };
         };
         return [
-            new Stream(() => teeIterator(left), this.controller),
-            new Stream(() => teeIterator(right), this.controller),
+            new Stream(() => teeIterator(left), this.controller, __classPrivateFieldGet$7(this, _Stream_client, "f")),
+            new Stream(() => teeIterator(right), this.controller, __classPrivateFieldGet$7(this, _Stream_client, "f")),
         ];
     }
     /**
@@ -37192,7 +37198,7 @@ const isAsyncIterable = (value) => value != null && typeof value === 'object' &&
 const multipartFormRequestOptions$1 = async (opts, fetch) => {
     return { ...opts, body: await createForm$1(opts.body, fetch) };
 };
-const supportsFormDataMap = new WeakMap();
+const supportsFormDataMap = /* @__PURE__ */ new WeakMap();
 /**
  * node-fetch doesn't support the global FormData object in recent node versions. Instead of sending
  * properly-encoded form data, it just stringifies the object, resulting in a request body of "[object FormData]".
@@ -37369,7 +37375,6 @@ let APIResource$1 = class APIResource {
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const brand_privateNullableHeaders = Symbol.for('brand.privateNullableHeaders');
-const isArray = Array.isArray;
 function* iterateHeaders(headers) {
     if (!headers)
         return;
@@ -37386,7 +37391,7 @@ function* iterateHeaders(headers) {
     if (headers instanceof Headers) {
         iter = headers.entries();
     }
-    else if (isArray(headers)) {
+    else if (isReadonlyArray(headers)) {
         iter = headers;
     }
     else {
@@ -37397,7 +37402,7 @@ function* iterateHeaders(headers) {
         const name = row[0];
         if (typeof name !== 'string')
             throw new TypeError('expected header name to be a string');
-        const values = isArray(row[1]) ? row[1] : [row[1]];
+        const values = isReadonlyArray(row[1]) ? row[1] : [row[1]];
         let didClear = false;
         for (const value of values) {
             if (value === undefined)
@@ -37447,21 +37452,38 @@ const buildHeaders = (newHeaders) => {
 function encodeURIPath(str) {
     return str.replace(/[^A-Za-z0-9\-._~!$&'()*+,;=:@]+/g, encodeURIComponent);
 }
+const EMPTY = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.create(null));
 const createPathTagFunction = (pathEncoder = encodeURIPath) => function path(statics, ...params) {
     // If there are no params, no processing is needed.
     if (statics.length === 1)
         return statics[0];
     let postPath = false;
+    const invalidSegments = [];
     const path = statics.reduce((previousValue, currentValue, index) => {
         if (/[?#]/.test(currentValue)) {
             postPath = true;
         }
-        return (previousValue +
-            currentValue +
-            (index === params.length ? '' : (postPath ? encodeURIComponent : pathEncoder)(String(params[index]))));
+        const value = params[index];
+        let encoded = (postPath ? encodeURIComponent : pathEncoder)('' + value);
+        if (index !== params.length &&
+            (value == null ||
+                (typeof value === 'object' &&
+                    // handle values from other realms
+                    value.toString ===
+                        Object.getPrototypeOf(Object.getPrototypeOf(value.hasOwnProperty ?? EMPTY) ?? EMPTY)
+                            ?.toString))) {
+            encoded = value + '';
+            invalidSegments.push({
+                start: previousValue.length + currentValue.length,
+                length: encoded.length,
+                error: `Value of type ${Object.prototype.toString
+                    .call(value)
+                    .slice(8, -1)} is not a valid path parameter`,
+            });
+        }
+        return previousValue + currentValue + (index === params.length ? '' : encoded);
     }, '');
     const pathOnly = path.split(/[?#]/, 1)[0];
-    const invalidSegments = [];
     const invalidSegmentPattern = /(?<=^|\/)(?:\.|%2e){1,2}(?=\/|$)/gi;
     let match;
     // Find all invalid segments
@@ -37469,8 +37491,10 @@ const createPathTagFunction = (pathEncoder = encodeURIPath) => function path(sta
         invalidSegments.push({
             start: match.index,
             length: match[0].length,
+            error: `Value "${match[0]}" can\'t be safely passed as a path parameter`,
         });
     }
+    invalidSegments.sort((a, b) => a.start - b.start);
     if (invalidSegments.length > 0) {
         let lastEnd = 0;
         const underline = invalidSegments.reduce((acc, segment) => {
@@ -37479,14 +37503,16 @@ const createPathTagFunction = (pathEncoder = encodeURIPath) => function path(sta
             lastEnd = segment.start + segment.length;
             return acc + spaces + arrows;
         }, '');
-        throw new AnthropicError(`Path parameters result in path with invalid segments:\n${path}\n${underline}`);
+        throw new AnthropicError(`Path parameters result in path with invalid segments:\n${invalidSegments
+            .map((e) => e.error)
+            .join('\n')}\n${path}\n${underline}`);
     }
     return path;
 };
 /**
  * URI-encodes path params and ensures no unsafe /./ or /../ path segments are introduced.
  */
-const path = createPathTagFunction(encodeURIPath);
+const path = /* @__PURE__ */ createPathTagFunction(encodeURIPath);
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 let Files$3 = class Files extends APIResource$1 {
@@ -37709,7 +37735,7 @@ let Batches$2 = class Batches extends APIResource$1 {
      *           messages: [
      *             { content: 'Hello, world', role: 'user' },
      *           ],
-     *           model: 'claude-3-7-sonnet-20250219',
+     *           model: 'claude-sonnet-4-20250514',
      *         },
      *       },
      *     ],
@@ -38223,23 +38249,32 @@ class BetaMessageStream {
     }
     async _createMessage(messages, params, options) {
         const signal = options?.signal;
+        let abortHandler;
         if (signal) {
             if (signal.aborted)
                 this.controller.abort();
-            signal.addEventListener('abort', () => this.controller.abort());
+            abortHandler = this.controller.abort.bind(this.controller);
+            signal.addEventListener('abort', abortHandler);
         }
-        __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_beginRequest).call(this);
-        const { response, data: stream } = await messages
-            .create({ ...params, stream: true }, { ...options, signal: this.controller.signal })
-            .withResponse();
-        this._connected(response);
-        for await (const event of stream) {
-            __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_addStreamEvent).call(this, event);
+        try {
+            __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_beginRequest).call(this);
+            const { response, data: stream } = await messages
+                .create({ ...params, stream: true }, { ...options, signal: this.controller.signal })
+                .withResponse();
+            this._connected(response);
+            for await (const event of stream) {
+                __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_addStreamEvent).call(this, event);
+            }
+            if (stream.controller.signal?.aborted) {
+                throw new APIUserAbortError$1();
+            }
+            __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_endRequest).call(this);
         }
-        if (stream.controller.signal?.aborted) {
-            throw new APIUserAbortError$1();
+        finally {
+            if (signal && abortHandler) {
+                signal.removeEventListener('abort', abortHandler);
+            }
         }
-        __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_endRequest).call(this);
     }
     _connected(response) {
         if (this.ended)
@@ -38390,21 +38425,30 @@ class BetaMessageStream {
     }
     async _fromReadableStream(readableStream, options) {
         const signal = options?.signal;
+        let abortHandler;
         if (signal) {
             if (signal.aborted)
                 this.controller.abort();
-            signal.addEventListener('abort', () => this.controller.abort());
+            abortHandler = this.controller.abort.bind(this.controller);
+            signal.addEventListener('abort', abortHandler);
         }
-        __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_beginRequest).call(this);
-        this._connected(null);
-        const stream = Stream$1.fromReadableStream(readableStream, this.controller);
-        for await (const event of stream) {
-            __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_addStreamEvent).call(this, event);
+        try {
+            __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_beginRequest).call(this);
+            this._connected(null);
+            const stream = Stream$1.fromReadableStream(readableStream, this.controller);
+            for await (const event of stream) {
+                __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_addStreamEvent).call(this, event);
+            }
+            if (stream.controller.signal?.aborted) {
+                throw new APIUserAbortError$1();
+            }
+            __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_endRequest).call(this);
         }
-        if (stream.controller.signal?.aborted) {
-            throw new APIUserAbortError$1();
+        finally {
+            if (signal && abortHandler) {
+                signal.removeEventListener('abort', abortHandler);
+            }
         }
-        __classPrivateFieldGet$7(this, _BetaMessageStream_instances, "m", _BetaMessageStream_endRequest).call(this);
     }
     [(_BetaMessageStream_currentMessageSnapshot = new WeakMap(), _BetaMessageStream_connectedPromise = new WeakMap(), _BetaMessageStream_resolveConnectedPromise = new WeakMap(), _BetaMessageStream_rejectConnectedPromise = new WeakMap(), _BetaMessageStream_endPromise = new WeakMap(), _BetaMessageStream_resolveEndPromise = new WeakMap(), _BetaMessageStream_rejectEndPromise = new WeakMap(), _BetaMessageStream_listeners = new WeakMap(), _BetaMessageStream_ended = new WeakMap(), _BetaMessageStream_errored = new WeakMap(), _BetaMessageStream_aborted = new WeakMap(), _BetaMessageStream_catchingPromiseCreated = new WeakMap(), _BetaMessageStream_response = new WeakMap(), _BetaMessageStream_request_id = new WeakMap(), _BetaMessageStream_handleError = new WeakMap(), _BetaMessageStream_instances = new WeakSet(), _BetaMessageStream_getFinalMessage = function _BetaMessageStream_getFinalMessage() {
         if (this.receivedMessages.length === 0) {
@@ -38535,14 +38579,19 @@ class BetaMessageStream {
                 switch (event.delta.type) {
                     case 'text_delta': {
                         if (snapshotContent?.type === 'text') {
-                            snapshotContent.text += event.delta.text;
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                text: (snapshotContent.text || '') + event.delta.text,
+                            };
                         }
                         break;
                     }
                     case 'citations_delta': {
                         if (snapshotContent?.type === 'text') {
-                            snapshotContent.citations ?? (snapshotContent.citations = []);
-                            snapshotContent.citations.push(event.delta.citation);
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                citations: [...(snapshotContent.citations ?? []), event.delta.citation],
+                            };
                         }
                         break;
                     }
@@ -38553,26 +38602,40 @@ class BetaMessageStream {
                             // non-enumerable property on the snapshot
                             let jsonBuf = snapshotContent[JSON_BUF_PROPERTY$1] || '';
                             jsonBuf += event.delta.partial_json;
-                            Object.defineProperty(snapshotContent, JSON_BUF_PROPERTY$1, {
+                            const newContent = { ...snapshotContent };
+                            Object.defineProperty(newContent, JSON_BUF_PROPERTY$1, {
                                 value: jsonBuf,
                                 enumerable: false,
                                 writable: true,
                             });
                             if (jsonBuf) {
-                                snapshotContent.input = partialParse$1(jsonBuf);
+                                try {
+                                    newContent.input = partialParse$1(jsonBuf);
+                                }
+                                catch (err) {
+                                    const error = new AnthropicError(`Unable to parse tool parameter JSON from model. Please retry your request or adjust your prompt. Error: ${err}. JSON: ${jsonBuf}`);
+                                    __classPrivateFieldGet$7(this, _BetaMessageStream_handleError, "f").call(this, error);
+                                }
                             }
+                            snapshot.content[event.index] = newContent;
                         }
                         break;
                     }
                     case 'thinking_delta': {
                         if (snapshotContent?.type === 'thinking') {
-                            snapshotContent.thinking += event.delta.thinking;
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                thinking: snapshotContent.thinking + event.delta.thinking,
+                            };
                         }
                         break;
                     }
                     case 'signature_delta': {
                         if (snapshotContent?.type === 'thinking') {
-                            snapshotContent.signature = event.delta.signature;
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                signature: event.delta.signature,
+                            };
                         }
                         break;
                     }
@@ -38653,6 +38716,9 @@ const MODEL_NONSTREAMING_TOKENS = {
     'claude-4-opus-20250514': 8192,
     'anthropic.claude-opus-4-20250514-v1:0': 8192,
     'claude-opus-4@20250514': 8192,
+    'claude-opus-4-1-20250805': 8192,
+    'anthropic.claude-opus-4-1-20250805-v1:0': 8192,
+    'claude-opus-4-1@20250805': 8192,
 };
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
@@ -38663,8 +38729,11 @@ const DEPRECATED_MODELS$1 = {
     'claude-instant-1.1-100k': 'November 6th, 2024',
     'claude-instant-1.2': 'November 6th, 2024',
     'claude-3-sonnet-20240229': 'July 21st, 2025',
+    'claude-3-opus-20240229': 'January 5th, 2026',
     'claude-2.1': 'July 21st, 2025',
     'claude-2.0': 'July 21st, 2025',
+    'claude-3-5-sonnet-20241022': 'October 22, 2025',
+    'claude-3-5-sonnet-20240620': 'October 22, 2025',
 };
 let Messages$3 = class Messages extends APIResource$1 {
     constructor() {
@@ -38884,23 +38953,32 @@ class MessageStream {
     }
     async _createMessage(messages, params, options) {
         const signal = options?.signal;
+        let abortHandler;
         if (signal) {
             if (signal.aborted)
                 this.controller.abort();
-            signal.addEventListener('abort', () => this.controller.abort());
+            abortHandler = this.controller.abort.bind(this.controller);
+            signal.addEventListener('abort', abortHandler);
         }
-        __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_beginRequest).call(this);
-        const { response, data: stream } = await messages
-            .create({ ...params, stream: true }, { ...options, signal: this.controller.signal })
-            .withResponse();
-        this._connected(response);
-        for await (const event of stream) {
-            __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_addStreamEvent).call(this, event);
+        try {
+            __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_beginRequest).call(this);
+            const { response, data: stream } = await messages
+                .create({ ...params, stream: true }, { ...options, signal: this.controller.signal })
+                .withResponse();
+            this._connected(response);
+            for await (const event of stream) {
+                __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_addStreamEvent).call(this, event);
+            }
+            if (stream.controller.signal?.aborted) {
+                throw new APIUserAbortError$1();
+            }
+            __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_endRequest).call(this);
         }
-        if (stream.controller.signal?.aborted) {
-            throw new APIUserAbortError$1();
+        finally {
+            if (signal && abortHandler) {
+                signal.removeEventListener('abort', abortHandler);
+            }
         }
-        __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_endRequest).call(this);
     }
     _connected(response) {
         if (this.ended)
@@ -39051,21 +39129,30 @@ class MessageStream {
     }
     async _fromReadableStream(readableStream, options) {
         const signal = options?.signal;
+        let abortHandler;
         if (signal) {
             if (signal.aborted)
                 this.controller.abort();
-            signal.addEventListener('abort', () => this.controller.abort());
+            abortHandler = this.controller.abort.bind(this.controller);
+            signal.addEventListener('abort', abortHandler);
         }
-        __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_beginRequest).call(this);
-        this._connected(null);
-        const stream = Stream$1.fromReadableStream(readableStream, this.controller);
-        for await (const event of stream) {
-            __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_addStreamEvent).call(this, event);
+        try {
+            __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_beginRequest).call(this);
+            this._connected(null);
+            const stream = Stream$1.fromReadableStream(readableStream, this.controller);
+            for await (const event of stream) {
+                __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_addStreamEvent).call(this, event);
+            }
+            if (stream.controller.signal?.aborted) {
+                throw new APIUserAbortError$1();
+            }
+            __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_endRequest).call(this);
         }
-        if (stream.controller.signal?.aborted) {
-            throw new APIUserAbortError$1();
+        finally {
+            if (signal && abortHandler) {
+                signal.removeEventListener('abort', abortHandler);
+            }
         }
-        __classPrivateFieldGet$7(this, _MessageStream_instances, "m", _MessageStream_endRequest).call(this);
     }
     [(_MessageStream_currentMessageSnapshot = new WeakMap(), _MessageStream_connectedPromise = new WeakMap(), _MessageStream_resolveConnectedPromise = new WeakMap(), _MessageStream_rejectConnectedPromise = new WeakMap(), _MessageStream_endPromise = new WeakMap(), _MessageStream_resolveEndPromise = new WeakMap(), _MessageStream_rejectEndPromise = new WeakMap(), _MessageStream_listeners = new WeakMap(), _MessageStream_ended = new WeakMap(), _MessageStream_errored = new WeakMap(), _MessageStream_aborted = new WeakMap(), _MessageStream_catchingPromiseCreated = new WeakMap(), _MessageStream_response = new WeakMap(), _MessageStream_request_id = new WeakMap(), _MessageStream_handleError = new WeakMap(), _MessageStream_instances = new WeakSet(), _MessageStream_getFinalMessage = function _MessageStream_getFinalMessage() {
         if (this.receivedMessages.length === 0) {
@@ -39189,21 +39276,26 @@ class MessageStream {
                 }
                 return snapshot;
             case 'content_block_start':
-                snapshot.content.push(event.content_block);
+                snapshot.content.push({ ...event.content_block });
                 return snapshot;
             case 'content_block_delta': {
                 const snapshotContent = snapshot.content.at(event.index);
                 switch (event.delta.type) {
                     case 'text_delta': {
                         if (snapshotContent?.type === 'text') {
-                            snapshotContent.text += event.delta.text;
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                text: (snapshotContent.text || '') + event.delta.text,
+                            };
                         }
                         break;
                     }
                     case 'citations_delta': {
                         if (snapshotContent?.type === 'text') {
-                            snapshotContent.citations ?? (snapshotContent.citations = []);
-                            snapshotContent.citations.push(event.delta.citation);
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                citations: [...(snapshotContent.citations ?? []), event.delta.citation],
+                            };
                         }
                         break;
                     }
@@ -39214,26 +39306,34 @@ class MessageStream {
                             // non-enumerable property on the snapshot
                             let jsonBuf = snapshotContent[JSON_BUF_PROPERTY] || '';
                             jsonBuf += event.delta.partial_json;
-                            Object.defineProperty(snapshotContent, JSON_BUF_PROPERTY, {
+                            const newContent = { ...snapshotContent };
+                            Object.defineProperty(newContent, JSON_BUF_PROPERTY, {
                                 value: jsonBuf,
                                 enumerable: false,
                                 writable: true,
                             });
                             if (jsonBuf) {
-                                snapshotContent.input = partialParse$1(jsonBuf);
+                                newContent.input = partialParse$1(jsonBuf);
                             }
+                            snapshot.content[event.index] = newContent;
                         }
                         break;
                     }
                     case 'thinking_delta': {
                         if (snapshotContent?.type === 'thinking') {
-                            snapshotContent.thinking += event.delta.thinking;
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                thinking: snapshotContent.thinking + event.delta.thinking,
+                            };
                         }
                         break;
                     }
                     case 'signature_delta': {
                         if (snapshotContent?.type === 'thinking') {
-                            snapshotContent.signature = event.delta.signature;
+                            snapshot.content[event.index] = {
+                                ...snapshotContent,
+                                signature: event.delta.signature,
+                            };
                         }
                         break;
                     }
@@ -39327,7 +39427,7 @@ let Batches$1 = class Batches extends APIResource$1 {
      *         messages: [
      *           { content: 'Hello, world', role: 'user' },
      *         ],
-     *         model: 'claude-3-7-sonnet-20250219',
+     *         model: 'claude-sonnet-4-20250514',
      *       },
      *     },
      *   ],
@@ -39504,8 +39604,11 @@ const DEPRECATED_MODELS = {
     'claude-instant-1.1-100k': 'November 6th, 2024',
     'claude-instant-1.2': 'November 6th, 2024',
     'claude-3-sonnet-20240229': 'July 21st, 2025',
+    'claude-3-opus-20240229': 'January 5th, 2026',
     'claude-2.1': 'July 21st, 2025',
     'claude-2.0': 'July 21st, 2025',
+    'claude-3-5-sonnet-20241022': 'October 22, 2025',
+    'claude-3-5-sonnet-20240620': 'October 22, 2025',
 };
 Messages$2.Batches = Batches$1;
 
@@ -39565,7 +39668,12 @@ const readEnv$1 = (env) => {
 };
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-var _a$1, _BaseAnthropic_encoder;
+var _BaseAnthropic_instances, _a$1, _BaseAnthropic_encoder, _BaseAnthropic_baseURLOverridden;
+const HUMAN_PROMPT = '\\n\\nHuman:';
+const AI_PROMPT = '\\n\\nAssistant:';
+/**
+ * Base class for Anthropic API clients.
+ */
 class BaseAnthropic {
     /**
      * API Client for interfacing with the Anthropic API.
@@ -39582,6 +39690,7 @@ class BaseAnthropic {
      * @param {boolean} [opts.dangerouslyAllowBrowser=false] - By default, client-side use of this library is not allowed, as it risks exposing your secret API credentials to attackers.
      */
     constructor({ baseURL = readEnv$1('ANTHROPIC_BASE_URL'), apiKey = readEnv$1('ANTHROPIC_API_KEY') ?? null, authToken = readEnv$1('ANTHROPIC_AUTH_TOKEN') ?? null, ...opts } = {}) {
+        _BaseAnthropic_instances.add(this);
         _BaseAnthropic_encoder.set(this, void 0);
         const options = {
             apiKey,
@@ -39593,7 +39702,7 @@ class BaseAnthropic {
             throw new AnthropicError("It looks like you're running in a browser-like environment.\n\nThis is disabled by default, as it risks exposing your secret API credentials to attackers.\nIf you understand the risks and have appropriate mitigations in place,\nyou can set the `dangerouslyAllowBrowser` option to `true`, e.g.,\n\nnew Anthropic({ apiKey, dangerouslyAllowBrowser: true });\n");
         }
         this.baseURL = options.baseURL;
-        this.timeout = options.timeout ?? Anthropic.DEFAULT_TIMEOUT /* 10 minutes */;
+        this.timeout = options.timeout ?? _a$1.DEFAULT_TIMEOUT /* 10 minutes */;
         this.logger = options.logger ?? console;
         const defaultLogLevel = 'warn';
         // Set default logLevel early so that we can log a warning in parseLogLevel.
@@ -39614,18 +39723,20 @@ class BaseAnthropic {
      * Create a new client instance re-using the same options given to the current client with optional overriding.
      */
     withOptions(options) {
-        return new this.constructor({
+        const client = new this.constructor({
             ...this._options,
             baseURL: this.baseURL,
             maxRetries: this.maxRetries,
             timeout: this.timeout,
             logger: this.logger,
             logLevel: this.logLevel,
+            fetch: this.fetch,
             fetchOptions: this.fetchOptions,
             apiKey: this.apiKey,
             authToken: this.authToken,
             ...options,
         });
+        return client;
     }
     defaultQuery() {
         return this._options.defaultQuery;
@@ -39645,16 +39756,16 @@ class BaseAnthropic {
         }
         throw new Error('Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted');
     }
-    authHeaders(opts) {
-        return buildHeaders([this.apiKeyAuth(opts), this.bearerAuth(opts)]);
+    async authHeaders(opts) {
+        return buildHeaders([await this.apiKeyAuth(opts), await this.bearerAuth(opts)]);
     }
-    apiKeyAuth(opts) {
+    async apiKeyAuth(opts) {
         if (this.apiKey == null) {
             return undefined;
         }
         return buildHeaders([{ 'X-Api-Key': this.apiKey }]);
     }
-    bearerAuth(opts) {
+    async bearerAuth(opts) {
         if (this.authToken == null) {
             return undefined;
         }
@@ -39686,10 +39797,11 @@ class BaseAnthropic {
     makeStatusError(status, error, message, headers) {
         return APIError$1.generate(status, error, message, headers);
     }
-    buildURL(path, query) {
+    buildURL(path, query, defaultBaseURL) {
+        const baseURL = (!__classPrivateFieldGet$7(this, _BaseAnthropic_instances, "m", _BaseAnthropic_baseURLOverridden).call(this) && defaultBaseURL) || this.baseURL;
         const url = isAbsoluteURL$1(path) ?
             new URL(path)
-            : new URL(this.baseURL + (this.baseURL.endsWith('/') && path.startsWith('/') ? path.slice(1) : path));
+            : new URL(baseURL + (baseURL.endsWith('/') && path.startsWith('/') ? path.slice(1) : path));
         const defaultQuery = this.defaultQuery();
         if (!isEmptyObj$1(defaultQuery)) {
             query = { ...defaultQuery, ...query };
@@ -39703,7 +39815,7 @@ class BaseAnthropic {
         const defaultTimeout = 10 * 60;
         const expectedTimeout = (60 * 60 * maxTokens) / 128000;
         if (expectedTimeout > defaultTimeout) {
-            throw new AnthropicError('Streaming is strongly recommended for operations that may take longer than 10 minutes. ' +
+            throw new AnthropicError('Streaming is required for operations that may take longer than 10 minutes. ' +
                 'See https://github.com/anthropics/anthropic-sdk-typescript#streaming-responses for more details');
         }
         return defaultTimeout * 1000;
@@ -39749,7 +39861,9 @@ class BaseAnthropic {
             retriesRemaining = maxRetries;
         }
         await this.prepareOptions(options);
-        const { req, url, timeout } = this.buildRequest(options, { retryCount: maxRetries - retriesRemaining });
+        const { req, url, timeout } = await this.buildRequest(options, {
+            retryCount: maxRetries - retriesRemaining,
+        });
         await this.prepareRequest(req, { url, options });
         /** Not an API request ID, just for correlating local log entries. */
         const requestLogID = 'log_' + ((Math.random() * (1 << 24)) | 0).toString(16).padStart(6, '0');
@@ -39768,7 +39882,7 @@ class BaseAnthropic {
         const controller = new AbortController();
         const response = await this.fetchWithTimeout(url, req, timeout, controller).catch(castToError$1);
         const headersTime = Date.now();
-        if (response instanceof Error) {
+        if (response instanceof globalThis.Error) {
             const retryMessage = `retrying, ${retriesRemaining} attempts remaining`;
             if (options.signal?.aborted) {
                 throw new APIUserAbortError$1();
@@ -39807,7 +39921,7 @@ class BaseAnthropic {
             .join('');
         const responseInfo = `[${requestLogID}${retryLogStr}${specialHeaders}] ${req.method} ${url} ${response.ok ? 'succeeded' : 'failed'} with status ${response.status} in ${headersTime - startTime}ms`;
         if (!response.ok) {
-            const shouldRetry = this.shouldRetry(response);
+            const shouldRetry = await this.shouldRetry(response);
             if (retriesRemaining && shouldRetry) {
                 const retryMessage = `retrying, ${retriesRemaining} attempts remaining`;
                 // We don't need the body of this response.
@@ -39881,7 +39995,7 @@ class BaseAnthropic {
             clearTimeout(timeout);
         }
     }
-    shouldRetry(response) {
+    async shouldRetry(response) {
         // Note this is not a standard header.
         const shouldRetryHeader = response.headers.get('x-should-retry');
         // If the server explicitly says whether or not to retry, obey.
@@ -39944,23 +40058,23 @@ class BaseAnthropic {
         return sleepSeconds * jitter * 1000;
     }
     calculateNonstreamingTimeout(maxTokens, maxNonstreamingTokens) {
-        const maxTime = 60 * 60 * 1000; // 10 minutes
+        const maxTime = 60 * 60 * 1000; // 60 minutes
         const defaultTime = 60 * 10 * 1000; // 10 minutes
         const expectedTime = (maxTime * maxTokens) / 128000;
         if (expectedTime > defaultTime || (maxNonstreamingTokens != null && maxTokens > maxNonstreamingTokens)) {
-            throw new AnthropicError('Streaming is strongly recommended for operations that may token longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#long-requests for more details');
+            throw new AnthropicError('Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#long-requests for more details');
         }
         return defaultTime;
     }
-    buildRequest(inputOptions, { retryCount = 0 } = {}) {
+    async buildRequest(inputOptions, { retryCount = 0 } = {}) {
         const options = { ...inputOptions };
-        const { method, path, query } = options;
-        const url = this.buildURL(path, query);
+        const { method, path, query, defaultBaseURL } = options;
+        const url = this.buildURL(path, query, defaultBaseURL);
         if ('timeout' in options)
             validatePositiveInteger$1('timeout', options.timeout);
         options.timeout = options.timeout ?? this.timeout;
         const { bodyHeaders, body } = this.buildBody({ options });
-        const reqHeaders = this.buildHeaders({ options: inputOptions, method, bodyHeaders, retryCount });
+        const reqHeaders = await this.buildHeaders({ options: inputOptions, method, bodyHeaders, retryCount });
         const req = {
             method,
             headers: reqHeaders,
@@ -39973,7 +40087,7 @@ class BaseAnthropic {
         };
         return { req, url, timeout: options.timeout };
     }
-    buildHeaders({ options, method, bodyHeaders, retryCount, }) {
+    async buildHeaders({ options, method, bodyHeaders, retryCount, }) {
         let idempotencyHeaders = {};
         if (this.idempotencyHeader && method !== 'get') {
             if (!options.idempotencyKey)
@@ -39993,7 +40107,7 @@ class BaseAnthropic {
                     : undefined),
                 'anthropic-version': '2023-06-01',
             },
-            this.authHeaders(options),
+            await this.authHeaders(options),
             this._options.defaultHeaders,
             bodyHeaders,
             options.headers,
@@ -40015,7 +40129,7 @@ class BaseAnthropic {
                 // Preserve legacy string encoding behavior for now
                 headers.values.has('content-type')) ||
             // `Blob` is superset of `File`
-            body instanceof Blob ||
+            (globalThis.Blob && body instanceof globalThis.Blob) ||
             // `FormData` -> `multipart/form-data`
             body instanceof FormData ||
             // `URLSearchParams` -> `application/x-www-form-urlencoded`
@@ -40034,10 +40148,12 @@ class BaseAnthropic {
         }
     }
 }
-_a$1 = BaseAnthropic, _BaseAnthropic_encoder = new WeakMap();
+_a$1 = BaseAnthropic, _BaseAnthropic_encoder = new WeakMap(), _BaseAnthropic_instances = new WeakSet(), _BaseAnthropic_baseURLOverridden = function _BaseAnthropic_baseURLOverridden() {
+    return this.baseURL !== 'https://api.anthropic.com';
+};
 BaseAnthropic.Anthropic = _a$1;
-BaseAnthropic.HUMAN_PROMPT = '\n\nHuman:';
-BaseAnthropic.AI_PROMPT = '\n\nAssistant:';
+BaseAnthropic.HUMAN_PROMPT = HUMAN_PROMPT;
+BaseAnthropic.AI_PROMPT = AI_PROMPT;
 BaseAnthropic.DEFAULT_TIMEOUT = 600000; // 10 minutes
 BaseAnthropic.AnthropicError = AnthropicError;
 BaseAnthropic.APIError = APIError$1;
@@ -40069,7 +40185,6 @@ Anthropic.Completions = Completions$3;
 Anthropic.Messages = Messages$2;
 Anthropic.Models = Models$1;
 Anthropic.Beta = Beta$1;
-const { HUMAN_PROMPT, AI_PROMPT } = Anthropic;
 
 const apiKey$2 = process.env.ANTHROPIC_API_KEY || "";
 class ClaudeClient {
