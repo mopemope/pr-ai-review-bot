@@ -1,7 +1,7 @@
 {
   "name": "smart-pr-reviewer",
   "description": "GitHub Actions for AI PR Reviewer",
-  "version": "1.2.3",
+  "version": "1.2.8",
   "author": "mopemope",
   "type": "module",
   "private": true,
