@@ -36,11 +36,11 @@ jobs:
         with:
           debug: true
           base_url: "https://openrouter.ai/api/v1"
-          use_file_content: false
+          use_file_content: true
           summary_model: |
-            openrouter/deepseek/deepseek-chat-v3-0324:free
+            openrouter/qwen/qwen3-coder:free
           model: |
-            openrouter/deepseek/deepseek-chat-v3-0324:free
+            openrouter/qwen/qwen3-coder:free
           file_type_prompts: |
             javascript: |
               Focus on ES6+ best practices and modern JavaScript patterns.
