@@ -47,7 +47,7 @@
     "@google/generative-ai": "^0.24.1",
     "@octokit/plugin-retry": "^6.1.0",
     "@octokit/plugin-throttling": "^8.2.0",
-    "minimatch": "^10.0.1",
+    "minimatch": "^10.0.3",
     "openai": "^5.20.3"
   },
   "devDependencies": {
