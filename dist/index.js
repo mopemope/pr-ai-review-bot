@@ -36197,7 +36197,7 @@ const safeJSON$1 = (text) => {
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const sleep$2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const VERSION$1 = '0.62.0'; // x-release-please-version
+const VERSION$1 = '0.65.0'; // x-release-please-version
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const isRunningInBrowser$1 = () => {
@@ -37735,7 +37735,7 @@ let Batches$2 = class Batches extends APIResource$1 {
      *           messages: [
      *             { content: 'Hello, world', role: 'user' },
      *           ],
-     *           model: 'claude-sonnet-4-20250514',
+     *           model: 'claude-sonnet-4-5-20250929',
      *         },
      *       },
      *     ],
@@ -38558,6 +38558,7 @@ class BetaMessageStream {
                 snapshot.stop_reason = event.delta.stop_reason;
                 snapshot.stop_sequence = event.delta.stop_sequence;
                 snapshot.usage.output_tokens = event.usage.output_tokens;
+                snapshot.context_management = event.context_management;
                 if (event.usage.input_tokens != null) {
                     snapshot.usage.input_tokens = event.usage.input_tokens;
                 }
@@ -38721,6 +38722,293 @@ const MODEL_NONSTREAMING_TOKENS = {
     'claude-opus-4-1@20250805': 8192,
 };
 
+var _BetaToolRunner_instances, _BetaToolRunner_consumed, _BetaToolRunner_mutated, _BetaToolRunner_state, _BetaToolRunner_options, _BetaToolRunner_message, _BetaToolRunner_toolResponse, _BetaToolRunner_completion, _BetaToolRunner_iterationCount, _BetaToolRunner_generateToolResponse;
+/**
+ * Just Promise.withResolvers(), which is not available in all environments.
+ */
+function promiseWithResolvers() {
+    let resolve;
+    let reject;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve: resolve, reject: reject };
+}
+/**
+ * A ToolRunner handles the automatic conversation loop between the assistant and tools.
+ *
+ * A ToolRunner is an async iterable that yields either BetaMessage or BetaMessageStream objects
+ * depending on the streaming configuration.
+ */
+class BetaToolRunner {
+    constructor(client, params, options) {
+        _BetaToolRunner_instances.add(this);
+        this.client = client;
+        /** Whether the async iterator has been consumed */
+        _BetaToolRunner_consumed.set(this, false);
+        /** Whether parameters have been mutated since the last API call */
+        _BetaToolRunner_mutated.set(this, false);
+        /** Current state containing the request parameters */
+        _BetaToolRunner_state.set(this, void 0);
+        _BetaToolRunner_options.set(this, void 0);
+        /** Promise for the last message received from the assistant */
+        _BetaToolRunner_message.set(this, void 0);
+        /** Cached tool response to avoid redundant executions */
+        _BetaToolRunner_toolResponse.set(this, void 0);
+        /** Promise resolvers for waiting on completion */
+        _BetaToolRunner_completion.set(this, void 0);
+        /** Number of iterations (API requests) made so far */
+        _BetaToolRunner_iterationCount.set(this, 0);
+        __classPrivateFieldSet$1(this, _BetaToolRunner_state, {
+            params: {
+                // You can't clone the entire params since there are functions as handlers.
+                // You also don't really need to clone params.messages, but it probably will prevent a foot gun
+                // somewhere.
+                ...params,
+                messages: structuredClone(params.messages),
+            },
+        });
+        __classPrivateFieldSet$1(this, _BetaToolRunner_options, {
+            ...options,
+            headers: buildHeaders$1([{ 'x-stainless-helper': 'BetaToolRunner' }, options?.headers]),
+        });
+        __classPrivateFieldSet$1(this, _BetaToolRunner_completion, promiseWithResolvers());
+    }
+    async *[(_BetaToolRunner_consumed = new WeakMap(), _BetaToolRunner_mutated = new WeakMap(), _BetaToolRunner_state = new WeakMap(), _BetaToolRunner_options = new WeakMap(), _BetaToolRunner_message = new WeakMap(), _BetaToolRunner_toolResponse = new WeakMap(), _BetaToolRunner_completion = new WeakMap(), _BetaToolRunner_iterationCount = new WeakMap(), _BetaToolRunner_instances = new WeakSet(), Symbol.asyncIterator)]() {
+        var _a;
+        if (__classPrivateFieldGet$1(this, _BetaToolRunner_consumed, "f")) {
+            throw new AnthropicError('Cannot iterate over a consumed stream');
+        }
+        __classPrivateFieldSet$1(this, _BetaToolRunner_consumed, true);
+        __classPrivateFieldSet$1(this, _BetaToolRunner_mutated, true);
+        __classPrivateFieldSet$1(this, _BetaToolRunner_toolResponse, undefined);
+        try {
+            while (true) {
+                let stream;
+                try {
+                    if (__classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params.max_iterations &&
+                        __classPrivateFieldGet$1(this, _BetaToolRunner_iterationCount, "f") >= __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params.max_iterations) {
+                        break;
+                    }
+                    __classPrivateFieldSet$1(this, _BetaToolRunner_mutated, false, "f");
+                    __classPrivateFieldSet$1(this, _BetaToolRunner_message, undefined, "f");
+                    __classPrivateFieldSet$1(this, _BetaToolRunner_toolResponse, undefined, "f");
+                    __classPrivateFieldSet$1(this, _BetaToolRunner_iterationCount, (_a = __classPrivateFieldGet$1(this, _BetaToolRunner_iterationCount, "f"), _a++, _a), "f");
+                    const { max_iterations, ...params } = __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params;
+                    if (params.stream) {
+                        stream = this.client.beta.messages.stream({ ...params }, __classPrivateFieldGet$1(this, _BetaToolRunner_options, "f"));
+                        __classPrivateFieldSet$1(this, _BetaToolRunner_message, stream.finalMessage(), "f");
+                        yield stream;
+                    }
+                    else {
+                        __classPrivateFieldSet$1(this, _BetaToolRunner_message, this.client.beta.messages.create({ ...params, stream: false }, __classPrivateFieldGet$1(this, _BetaToolRunner_options, "f")), "f");
+                        yield __classPrivateFieldGet$1(this, _BetaToolRunner_message, "f");
+                    }
+                    if (!__classPrivateFieldGet$1(this, _BetaToolRunner_mutated, "f")) {
+                        const { role, content } = await __classPrivateFieldGet$1(this, _BetaToolRunner_message, "f");
+                        __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params.messages.push({ role, content });
+                    }
+                    const toolMessage = await __classPrivateFieldGet$1(this, _BetaToolRunner_instances, "m", _BetaToolRunner_generateToolResponse).call(this, __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params.messages.at(-1));
+                    if (toolMessage) {
+                        __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params.messages.push(toolMessage);
+                    }
+                    if (!toolMessage && !__classPrivateFieldGet$1(this, _BetaToolRunner_mutated, "f")) {
+                        break;
+                    }
+                }
+                finally {
+                    if (stream) {
+                        stream.abort();
+                    }
+                }
+            }
+            if (!__classPrivateFieldGet$1(this, _BetaToolRunner_message, "f")) {
+                throw new AnthropicError('ToolRunner concluded without a message from the server');
+            }
+            __classPrivateFieldGet$1(this, _BetaToolRunner_completion, "f").resolve(await __classPrivateFieldGet$1(this, _BetaToolRunner_message, "f"));
+        }
+        catch (error) {
+            __classPrivateFieldSet$1(this, _BetaToolRunner_consumed, false);
+            // Silence unhandled promise errors
+            __classPrivateFieldGet$1(this, _BetaToolRunner_completion, "f").promise.catch(() => { });
+            __classPrivateFieldGet$1(this, _BetaToolRunner_completion, "f").reject(error);
+            __classPrivateFieldSet$1(this, _BetaToolRunner_completion, promiseWithResolvers());
+            throw error;
+        }
+    }
+    setMessagesParams(paramsOrMutator) {
+        if (typeof paramsOrMutator === 'function') {
+            __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params = paramsOrMutator(__classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params);
+        }
+        else {
+            __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params = paramsOrMutator;
+        }
+        __classPrivateFieldSet$1(this, _BetaToolRunner_mutated, true);
+        // Invalidate cached tool response since parameters changed
+        __classPrivateFieldSet$1(this, _BetaToolRunner_toolResponse, undefined);
+    }
+    /**
+     * Get the tool response for the last message from the assistant.
+     * Avoids redundant tool executions by caching results.
+     *
+     * @returns A promise that resolves to a BetaMessageParam containing tool results, or null if no tools need to be executed
+     *
+     * @example
+     * const toolResponse = await runner.generateToolResponse();
+     * if (toolResponse) {
+     *   console.log('Tool results:', toolResponse.content);
+     * }
+     */
+    async generateToolResponse() {
+        const message = (await __classPrivateFieldGet$1(this, _BetaToolRunner_message, "f")) ?? this.params.messages.at(-1);
+        if (!message) {
+            return null;
+        }
+        return __classPrivateFieldGet$1(this, _BetaToolRunner_instances, "m", _BetaToolRunner_generateToolResponse).call(this, message);
+    }
+    /**
+     * Wait for the async iterator to complete. This works even if the async iterator hasn't yet started, and
+     * will wait for an instance to start and go to completion.
+     *
+     * @returns A promise that resolves to the final BetaMessage when the iterator completes
+     *
+     * @example
+     * // Start consuming the iterator
+     * for await (const message of runner) {
+     *   console.log('Message:', message.content);
+     * }
+     *
+     * // Meanwhile, wait for completion from another part of the code
+     * const finalMessage = await runner.done();
+     * console.log('Final response:', finalMessage.content);
+     */
+    done() {
+        return __classPrivateFieldGet$1(this, _BetaToolRunner_completion, "f").promise;
+    }
+    /**
+     * Returns a promise indicating that the stream is done. Unlike .done(), this will eagerly read the stream:
+     * * If the iterator has not been consumed, consume the entire iterator and return the final message from the
+     * assistant.
+     * * If the iterator has been consumed, waits for it to complete and returns the final message.
+     *
+     * @returns A promise that resolves to the final BetaMessage from the conversation
+     * @throws {AnthropicError} If no messages were processed during the conversation
+     *
+     * @example
+     * const finalMessage = await runner.runUntilDone();
+     * console.log('Final response:', finalMessage.content);
+     */
+    async runUntilDone() {
+        // If not yet consumed, start consuming and wait for completion
+        if (!__classPrivateFieldGet$1(this, _BetaToolRunner_consumed, "f")) {
+            for await (const _ of this) {
+                // Iterator naturally populates this.#message
+            }
+        }
+        // If consumed but not completed, wait for completion
+        return this.done();
+    }
+    /**
+     * Get the current parameters being used by the ToolRunner.
+     *
+     * @returns A readonly view of the current ToolRunnerParams
+     *
+     * @example
+     * const currentParams = runner.params;
+     * console.log('Current model:', currentParams.model);
+     * console.log('Message count:', currentParams.messages.length);
+     */
+    get params() {
+        return __classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params;
+    }
+    /**
+     * Add one or more messages to the conversation history.
+     *
+     * @param messages - One or more BetaMessageParam objects to add to the conversation
+     *
+     * @example
+     * runner.pushMessages(
+     *   { role: 'user', content: 'Also, what about the weather in NYC?' }
+     * );
+     *
+     * @example
+     * // Adding multiple messages
+     * runner.pushMessages(
+     *   { role: 'user', content: 'What about NYC?' },
+     *   { role: 'user', content: 'And Boston?' }
+     * );
+     */
+    pushMessages(...messages) {
+        this.setMessagesParams((params) => ({
+            ...params,
+            messages: [...params.messages, ...messages],
+        }));
+    }
+    /**
+     * Makes the ToolRunner directly awaitable, equivalent to calling .runUntilDone()
+     * This allows using `await runner` instead of `await runner.runUntilDone()`
+     */
+    then(onfulfilled, onrejected) {
+        return this.runUntilDone().then(onfulfilled, onrejected);
+    }
+}
+_BetaToolRunner_generateToolResponse = async function _BetaToolRunner_generateToolResponse(lastMessage) {
+    if (__classPrivateFieldGet$1(this, _BetaToolRunner_toolResponse, "f") !== undefined) {
+        return __classPrivateFieldGet$1(this, _BetaToolRunner_toolResponse, "f");
+    }
+    __classPrivateFieldSet$1(this, _BetaToolRunner_toolResponse, generateToolResponse(__classPrivateFieldGet$1(this, _BetaToolRunner_state, "f").params, lastMessage));
+    return __classPrivateFieldGet$1(this, _BetaToolRunner_toolResponse, "f");
+};
+async function generateToolResponse(params, lastMessage = params.messages.at(-1)) {
+    // Only process if the last message is from the assistant and has tool use blocks
+    if (!lastMessage ||
+        lastMessage.role !== 'assistant' ||
+        !lastMessage.content ||
+        typeof lastMessage.content === 'string') {
+        return null;
+    }
+    const toolUseBlocks = lastMessage.content.filter((content) => content.type === 'tool_use');
+    if (toolUseBlocks.length === 0) {
+        return null;
+    }
+    const toolResults = await Promise.all(toolUseBlocks.map(async (toolUse) => {
+        const tool = params.tools.find((t) => t.name === toolUse.name);
+        if (!tool || !('run' in tool)) {
+            return {
+                type: 'tool_result',
+                tool_use_id: toolUse.id,
+                content: `Error: Tool '${toolUse.name}' not found`,
+                is_error: true,
+            };
+        }
+        try {
+            let input = toolUse.input;
+            if ('parse' in tool && tool.parse) {
+                input = tool.parse(input);
+            }
+            const result = await tool.run(input);
+            return {
+                type: 'tool_result',
+                tool_use_id: toolUse.id,
+                content: result,
+            };
+        }
+        catch (error) {
+            return {
+                type: 'tool_result',
+                tool_use_id: toolUse.id,
+                content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                is_error: true,
+            };
+        }
+    }));
+    return {
+        role: 'user',
+        content: toolResults,
+    };
+}
+
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const DEPRECATED_MODELS$1 = {
     'claude-1.3': 'November 6th, 2024',
@@ -38796,8 +39084,12 @@ let Messages$3 = class Messages extends APIResource$1 {
             ]),
         });
     }
+    toolRunner(body, options) {
+        return new BetaToolRunner(this._client, body, options);
+    }
 };
 Messages$3.Batches = Batches$2;
+Messages$3.BetaToolRunner = BetaToolRunner;
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 let Beta$1 = class Beta extends APIResource$1 {
@@ -39427,7 +39719,7 @@ let Batches$1 = class Batches extends APIResource$1 {
      *         messages: [
      *           { content: 'Hello, world', role: 'user' },
      *         ],
-     *         model: 'claude-sonnet-4-20250514',
+     *         model: 'claude-sonnet-4-5-20250929',
      *       },
      *     },
      *   ],
@@ -42068,7 +42360,7 @@ const safeJSON = (text) => {
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const VERSION = '5.20.3'; // x-release-please-version
+const VERSION = '6.2.0'; // x-release-please-version
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 const isRunningInBrowser = () => {
@@ -43469,6 +43761,15 @@ function getName(value) {
         .pop() || undefined);
 }
 const isAsyncIterable = (value) => value != null && typeof value === 'object' && typeof value[Symbol.asyncIterator] === 'function';
+/**
+ * Returns a multipart/form-data request if any part of the given request body contains a File / Blob value.
+ * Otherwise returns the request as is.
+ */
+const maybeMultipartFormRequestOptions = async (opts, fetch) => {
+    if (!hasUploadableValue(opts.body))
+        return opts;
+    return { ...opts, body: await createForm(opts.body, fetch) };
+};
 const multipartFormRequestOptions = async (opts, fetch) => {
     return { ...opts, body: await createForm(opts.body, fetch) };
 };
@@ -43514,6 +43815,22 @@ const createForm = async (body, fetch) => {
 // We check for Blob not File because Bun.File doesn't inherit from File,
 // but they both inherit from Blob and have a `name` property at runtime.
 const isNamedBlob = (value) => value instanceof Blob && 'name' in value;
+const isUploadable = (value) => typeof value === 'object' &&
+    value !== null &&
+    (value instanceof Response || isAsyncIterable(value) || isNamedBlob(value));
+const hasUploadableValue = (value) => {
+    if (isUploadable(value))
+        return true;
+    if (Array.isArray(value))
+        return value.some(hasUploadableValue);
+    if (value && typeof value === 'object') {
+        for (const k in value) {
+            if (hasUploadableValue(value[k]))
+                return true;
+        }
+    }
+    return false;
+};
 const addFormValue = async (form, key, value) => {
     if (value === undefined)
         return;
@@ -43568,7 +43885,7 @@ const isResponseLike = (value) => value != null &&
     typeof value.blob === 'function';
 /**
  * Helper for creating a {@link File} to pass to an SDK upload method from a variety of different data formats
- * @param value the raw content of the file.  Can be an {@link Uploadable}, {@link BlobLikePart}, or {@link AsyncIterable} of {@link BlobLikePart}s
+ * @param value the raw content of the file. Can be an {@link Uploadable}, BlobLikePart, or AsyncIterable of BlobLikeParts
  * @param {string=} name the name of the file. If omitted, toFile will try to determine a file name from bits if possible
  * @param {Object=} options additional properties
  * @param {string=} options.type the MIME type of the content
@@ -45419,7 +45736,7 @@ class Assistants extends APIResource {
 }
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
-class Sessions extends APIResource {
+let Sessions$1 = class Sessions extends APIResource {
     /**
      * Create an ephemeral API token for use in client-side applications with the
      * Realtime API. Can be configured with the same session parameters as the
@@ -45442,7 +45759,7 @@ class Sessions extends APIResource {
             headers: buildHeaders([{ 'OpenAI-Beta': 'assistants=v2' }, options?.headers]),
         });
     }
-}
+};
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 class TranscriptionSessions extends APIResource {
@@ -45477,12 +45794,143 @@ class TranscriptionSessions extends APIResource {
 let Realtime$1 = class Realtime extends APIResource {
     constructor() {
         super(...arguments);
-        this.sessions = new Sessions(this._client);
+        this.sessions = new Sessions$1(this._client);
         this.transcriptionSessions = new TranscriptionSessions(this._client);
     }
 };
-Realtime$1.Sessions = Sessions;
+Realtime$1.Sessions = Sessions$1;
 Realtime$1.TranscriptionSessions = TranscriptionSessions;
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class Sessions extends APIResource {
+    /**
+     * Create a ChatKit session
+     *
+     * @example
+     * ```ts
+     * const chatSession =
+     *   await client.beta.chatkit.sessions.create({
+     *     user: 'x',
+     *     workflow: { id: 'id' },
+     *   });
+     * ```
+     */
+    create(body, options) {
+        return this._client.post('/chatkit/sessions', {
+            body,
+            ...options,
+            headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]),
+        });
+    }
+    /**
+     * Cancel a ChatKit session
+     *
+     * @example
+     * ```ts
+     * const chatSession =
+     *   await client.beta.chatkit.sessions.cancel('cksess_123');
+     * ```
+     */
+    cancel(sessionID, options) {
+        return this._client.post(path `/chatkit/sessions/${sessionID}/cancel`, {
+            ...options,
+            headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]),
+        });
+    }
+}
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+let Threads$1 = class Threads extends APIResource {
+    /**
+     * Retrieve a ChatKit thread
+     *
+     * @example
+     * ```ts
+     * const chatkitThread =
+     *   await client.beta.chatkit.threads.retrieve('cthr_123');
+     * ```
+     */
+    retrieve(threadID, options) {
+        return this._client.get(path `/chatkit/threads/${threadID}`, {
+            ...options,
+            headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]),
+        });
+    }
+    /**
+     * List ChatKit threads
+     *
+     * @example
+     * ```ts
+     * // Automatically fetches more pages as needed.
+     * for await (const chatkitThread of client.beta.chatkit.threads.list()) {
+     *   // ...
+     * }
+     * ```
+     */
+    list(query = {}, options) {
+        return this._client.getAPIList('/chatkit/threads', (ConversationCursorPage), {
+            query,
+            ...options,
+            headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]),
+        });
+    }
+    /**
+     * Delete a ChatKit thread
+     *
+     * @example
+     * ```ts
+     * const thread = await client.beta.chatkit.threads.delete(
+     *   'cthr_123',
+     * );
+     * ```
+     */
+    delete(threadID, options) {
+        return this._client.delete(path `/chatkit/threads/${threadID}`, {
+            ...options,
+            headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]),
+        });
+    }
+    /**
+     * List ChatKit thread items
+     *
+     * @example
+     * ```ts
+     * // Automatically fetches more pages as needed.
+     * for await (const thread of client.beta.chatkit.threads.listItems(
+     *   'cthr_123',
+     * )) {
+     *   // ...
+     * }
+     * ```
+     */
+    listItems(threadID, query = {}, options) {
+        return this._client.getAPIList(path `/chatkit/threads/${threadID}/items`, (ConversationCursorPage), { query, ...options, headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]) });
+    }
+};
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class ChatKit extends APIResource {
+    constructor() {
+        super(...arguments);
+        this.sessions = new Sessions(this._client);
+        this.threads = new Threads$1(this._client);
+    }
+    /**
+     * Upload a ChatKit file
+     *
+     * @example
+     * ```ts
+     * const response = await client.beta.chatkit.uploadFile({
+     *   file: fs.createReadStream('path/to/file'),
+     * });
+     * ```
+     */
+    uploadFile(body, options) {
+        return this._client.post('/chatkit/files', maybeMultipartFormRequestOptions({ body, ...options, headers: buildHeaders([{ 'OpenAI-Beta': 'chatkit_beta=v1' }, options?.headers]) }, this._client));
+    }
+}
+ChatKit.Sessions = Sessions;
+ChatKit.Threads = Threads$1;
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 /**
@@ -46421,11 +46869,13 @@ class Beta extends APIResource {
     constructor() {
         super(...arguments);
         this.realtime = new Realtime$1(this._client);
+        this.chatkit = new ChatKit(this._client);
         this.assistants = new Assistants(this._client);
         this.threads = new Threads(this._client);
     }
 }
 Beta.Realtime = Realtime$1;
+Beta.ChatKit = ChatKit;
 Beta.Assistants = Assistants;
 Beta.Threads = Threads;
 
@@ -46575,23 +47025,23 @@ class Conversations extends APIResource {
     /**
      * Create a conversation.
      */
-    create(body, options) {
+    create(body = {}, options) {
         return this._client.post('/conversations', { body, ...options });
     }
     /**
-     * Get a conversation with the given ID.
+     * Get a conversation
      */
     retrieve(conversationID, options) {
         return this._client.get(path `/conversations/${conversationID}`, options);
     }
     /**
-     * Update a conversation's metadata with the given ID.
+     * Update a conversation
      */
     update(conversationID, body, options) {
         return this._client.post(path `/conversations/${conversationID}`, { body, ...options });
     }
     /**
-     * Delete a conversation with the given ID.
+     * Delete a conversation. Items in the conversation will not be deleted.
      */
     delete(conversationID, options) {
         return this._client.delete(path `/conversations/${conversationID}`, options);
@@ -47187,9 +47637,83 @@ class Moderations extends APIResource {
 }
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class Calls extends APIResource {
+    /**
+     * Accept an incoming SIP call and configure the realtime session that will handle
+     * it.
+     *
+     * @example
+     * ```ts
+     * await client.realtime.calls.accept('call_id', {
+     *   type: 'realtime',
+     * });
+     * ```
+     */
+    accept(callID, body, options) {
+        return this._client.post(path `/realtime/calls/${callID}/accept`, {
+            body,
+            ...options,
+            headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+        });
+    }
+    /**
+     * End an active Realtime API call, whether it was initiated over SIP or WebRTC.
+     *
+     * @example
+     * ```ts
+     * await client.realtime.calls.hangup('call_id');
+     * ```
+     */
+    hangup(callID, options) {
+        return this._client.post(path `/realtime/calls/${callID}/hangup`, {
+            ...options,
+            headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+        });
+    }
+    /**
+     * Transfer an active SIP call to a new destination using the SIP REFER verb.
+     *
+     * @example
+     * ```ts
+     * await client.realtime.calls.refer('call_id', {
+     *   target_uri: 'tel:+14155550123',
+     * });
+     * ```
+     */
+    refer(callID, body, options) {
+        return this._client.post(path `/realtime/calls/${callID}/refer`, {
+            body,
+            ...options,
+            headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+        });
+    }
+    /**
+     * Decline an incoming SIP call by returning a SIP status code to the caller.
+     *
+     * @example
+     * ```ts
+     * await client.realtime.calls.reject('call_id');
+     * ```
+     */
+    reject(callID, body = {}, options) {
+        return this._client.post(path `/realtime/calls/${callID}/reject`, {
+            body,
+            ...options,
+            headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+        });
+    }
+}
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 class ClientSecrets extends APIResource {
     /**
      * Create a Realtime client secret with an associated session configuration.
+     *
+     * @example
+     * ```ts
+     * const clientSecret =
+     *   await client.realtime.clientSecrets.create();
+     * ```
      */
     create(body, options) {
         return this._client.post('/realtime/client_secrets', { body, ...options });
@@ -47201,9 +47725,11 @@ class Realtime extends APIResource {
     constructor() {
         super(...arguments);
         this.clientSecrets = new ClientSecrets(this._client);
+        this.calls = new Calls(this._client);
     }
 }
 Realtime.ClientSecrets = ClientSecrets;
+Realtime.Calls = Calls;
 
 function maybeParseResponse(response, params) {
     if (!params || !hasAutoParseableInput(params)) {
@@ -47455,8 +47981,16 @@ class ResponseStream extends EventStream {
                 if (!output) {
                     throw new OpenAIError(`missing output at index ${event.output_index}`);
                 }
-                if (output.type === 'message') {
-                    output.content.push(event.part);
+                const type = output.type;
+                const part = event.part;
+                if (type === 'message' && part.type !== 'reasoning_text') {
+                    output.content.push(part);
+                }
+                else if (type === 'reasoning' && part.type === 'reasoning_text') {
+                    if (!output.content) {
+                        output.content = [];
+                    }
+                    output.content.push(part);
                 }
                 break;
             }
@@ -47484,6 +48018,23 @@ class ResponseStream extends EventStream {
                 }
                 if (output.type === 'function_call') {
                     output.arguments += event.delta;
+                }
+                break;
+            }
+            case 'response.reasoning_text.delta': {
+                const output = snapshot.output[event.output_index];
+                if (!output) {
+                    throw new OpenAIError(`missing output at index ${event.output_index}`);
+                }
+                if (output.type === 'reasoning') {
+                    const content = output.content?.[event.content_index];
+                    if (!content) {
+                        throw new OpenAIError(`missing content at index ${event.content_index}`);
+                    }
+                    if (content.type !== 'reasoning_text') {
+                        throw new OpenAIError(`expected content to be 'reasoning_text', got ${content.type}`);
+                    }
+                    content.text += event.delta;
                 }
                 break;
             }
@@ -48078,6 +48629,51 @@ VectorStores.Files = Files;
 VectorStores.FileBatches = FileBatches;
 
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
+class Videos extends APIResource {
+    /**
+     * Create a video
+     */
+    create(body, options) {
+        return this._client.post('/videos', maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+    }
+    /**
+     * Retrieve a video
+     */
+    retrieve(videoID, options) {
+        return this._client.get(path `/videos/${videoID}`, options);
+    }
+    /**
+     * List videos
+     */
+    list(query = {}, options) {
+        return this._client.getAPIList('/videos', (ConversationCursorPage), { query, ...options });
+    }
+    /**
+     * Delete a video
+     */
+    delete(videoID, options) {
+        return this._client.delete(path `/videos/${videoID}`, options);
+    }
+    /**
+     * Download video content
+     */
+    downloadContent(videoID, query = {}, options) {
+        return this._client.get(path `/videos/${videoID}/content`, {
+            query,
+            ...options,
+            headers: buildHeaders([{ Accept: 'application/binary' }, options?.headers]),
+            __binaryResponse: true,
+        });
+    }
+    /**
+     * Create a video remix
+     */
+    remix(videoID, body, options) {
+        return this._client.post(path `/videos/${videoID}/remix`, maybeMultipartFormRequestOptions({ body, ...options }, this._client));
+    }
+}
+
+// File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 var _Webhooks_instances, _Webhooks_validateSecret, _Webhooks_getRequiredHeader;
 class Webhooks extends APIResource {
     constructor() {
@@ -48215,6 +48811,7 @@ class OpenAI {
         this.conversations = new Conversations(this);
         this.evals = new Evals(this);
         this.containers = new Containers(this);
+        this.videos = new Videos(this);
         if (apiKey === undefined) {
             throw new OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
         }
@@ -48685,6 +49282,7 @@ OpenAI.Realtime = Realtime;
 OpenAI.Conversations = Conversations;
 OpenAI.Evals = Evals;
 OpenAI.Containers = Containers;
+OpenAI.Videos = Videos;
 
 const apiKey = process.env.OPENAI_API_KEY || "";
 class OpenAIClient {
